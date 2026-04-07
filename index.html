@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Torre de Control — ADC</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;color:#1a1a1a;background:#f5f5f3}
+  a{color:inherit}
+  .topbar{display:flex;align-items:center;gap:10px;padding:12px 20px;background:#fff;border-bottom:1px solid #e5e5e3;flex-wrap:wrap;position:sticky;top:0;z-index:100}
+  .topbar h1{font-size:16px;font-weight:600}
+  .topbar-sub{font-size:11px;color:#888}
+  .nav{display:flex;gap:0;padding:0 20px;background:#fff;border-bottom:1px solid #e5e5e3;overflow-x:auto}
+  .nav-btn{padding:10px 16px;font-size:12px;font-weight:500;cursor:pointer;border:none;border-bottom:2px solid transparent;background:none;color:#888;white-space:nowrap;font-family:inherit}
+  .nav-btn.active{color:#1a1a1a;border-bottom-color:#1a1a1a}
+  .nav-btn:hover{color:#1a1a1a}
+  .content{padding:20px;max-width:1400px;margin:0 auto}
+  .screen{display:none}.screen.active{display:block}
+  input,select,textarea{width:100%;font-size:12px;padding:7px 10px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#1a1a1a;font-family:inherit}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:#888}
+  textarea{resize:vertical;min-height:60px}
+  label{font-size:11px;color:#666;display:block;margin-bottom:3px}
+  .field{flex:1;min-width:100px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .btn{padding:7px 14px;font-size:12px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#1a1a1a;cursor:pointer;font-family:inherit;white-space:nowrap;transition:background 0.15s}
+  .btn:hover{background:#f5f5f3}
+  .btn-primary{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+  .btn-primary:hover{background:#333}
+  .btn-sm{padding:4px 10px;font-size:11px}
+  .btn-danger{border-color:#fca5a5;color:#dc2626}
+  .btn-danger:hover{background:#fef2f2}
+  .card{background:#fff;border:1px solid #e5e5e3;border-radius:12px;padding:16px;margin-bottom:12px}
+  .card-hd{font-size:13px;font-weight:600;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #e5e5e3;display:flex;justify-content:space-between;align-items:center}
+  .section-hd{font-size:13px;font-weight:600;margin-bottom:10px}
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px}
+  .stat{background:#f5f5f3;border-radius:10px;padding:12px}
+  .stat-lbl{font-size:11px;color:#666;margin-bottom:4px}
+  .stat-val{font-size:22px;font-weight:600;line-height:1}
+  .stat-sub{font-size:11px;color:#888;margin-top:3px}
+  .tbl-wrap{overflow-x:auto;border:1px solid #e5e5e3;border-radius:12px;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;table-layout:fixed}
+  th{background:#f9f9f8;padding:9px 12px;text-align:left;font-size:11px;font-weight:600;color:#666;border-bottom:1px solid #e5e5e3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  td{padding:9px 12px;border-bottom:1px solid #e5e5e3;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:#f9f9f8}
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:500}
+  .b-green{background:#dcfce7;color:#15803d}
+  .b-amber{background:#fef9c3;color:#a16207}
+  .b-red{background:#fee2e2;color:#dc2626}
+  .b-blue{background:#dbeafe;color:#1d4ed8}
+  .b-gray{background:#f1f5f9;color:#475569}
+  .b-purple{background:#ede9fe;color:#6d28d9}
+  .b-teal{background:#ccfbf1;color:#0f766e}
+  .prog{background:#e5e5e3;border-radius:4px;height:5px;width:100%}
+  .prog-fill{height:5px;border-radius:4px}
+  .pill-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+  .pill{padding:5px 14px;font-size:12px;border:1px solid #ddd;border-radius:999px;cursor:pointer;background:#fff;color:#666;font-family:inherit}
+  .pill.active{background:#f5f5f3;color:#1a1a1a;font-weight:500;border-color:#aaa}
+  .filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+  .filter-row input,.filter-row select{width:auto;flex:1;min-width:120px;max-width:220px}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+  .overlay.open{display:flex}
+  .modal{background:#fff;border-radius:16px;padding:22px;width:100%;max-width:600px;margin:auto}
+  .modal-hd{font-size:15px;font-weight:600;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+  .step-tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:1px solid #e5e5e3}
+  .step-tab{padding:8px 14px;font-size:12px;font-weight:500;cursor:pointer;border:none;border-bottom:2px solid transparent;background:none;color:#888;font-family:inherit}
+  .step-tab.active{color:#1a1a1a;border-bottom-color:#1a1a1a}
+  .step-content{display:none}.step-content.active{display:block}
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:12px;margin-bottom:8px}
+  .info-lbl{color:#666;font-size:11px}
+  .info-val{font-weight:500}
+  .hito-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e5e3}
+  .hito-row:last-child{border-bottom:none}
+  .hito-lbl{font-size:12px;flex:1}
+  .back-btn{display:flex;align-items:center;gap:6px;font-size:12px;color:#666;cursor:pointer;margin-bottom:14px;background:none;border:none;font-family:inherit;padding:0}
+  .back-btn:hover{color:#1a1a1a}
+  .alert-item{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border:1px solid #e5e5e3;border-radius:10px;margin-bottom:8px;font-size:12px;background:#fff}
+  .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px}
+  .setup-box{background:#fff;border:1px solid #e5e5e3;border-radius:12px;padding:24px;max-width:560px;margin:40px auto}
+  .setup-box h2{font-size:18px;font-weight:600;margin-bottom:8px}
+  .setup-box p{font-size:13px;color:#555;margin-bottom:16px;line-height:1.6}
+  .setup-box .step{display:flex;gap:12px;margin-bottom:14px;align-items:flex-start}
+  .step-num{background:#1a1a1a;color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;margin-top:1px}
+  .toast{position:fixed;bottom:20px;right:20px;background:#1a1a1a;color:#fff;padding:10px 16px;border-radius:10px;font-size:12px;z-index:999;display:none;box-shadow:0 4px 12px rgba(0,0,0,0.2)}
+  .loading{text-align:center;padding:40px;color:#888;font-size:13px}
+  .conn-status{font-size:11px;padding:3px 10px;border-radius:999px;margin-left:auto}
+  .conn-ok{background:#dcfce7;color:#15803d}
+  .conn-err{background:#fee2e2;color:#dc2626}
+  .divider{height:1px;background:#e5e5e3;margin:12px 0}
+</style>
+</head>
+<body>
+
+<!-- CONFIG SCREEN -->
+<div id="setup-screen">
+  <div class="setup-box" style="max-width:360px">
+    <h2 style="text-align:center;margin-bottom:6px">Torre de Control</h2>
+    <p style="text-align:center;margin-bottom:24px">Promotora VFC</p>
+    <div style="margin-bottom:12px">
+      <label>Contraseña</label>
+      <input id="login-pwd" type="password" placeholder="Ingresa tu contraseña" onkeydown="if(event.key==='Enter')entrarConContrasena()">
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="entrarConContrasena()">Entrar</button>
+    <p id="login-error" style="color:#dc2626;font-size:12px;margin-top:10px;display:none;text-align:center">Contraseña incorrecta. Intenta de nuevo.</p>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="main-app" style="display:none">
+<div class="topbar">
+  <div>
+    <div style="font-size:16px;font-weight:600">Torre de Control — ADC</div>
+    <div class="topbar-sub" id="hoy"></div>
+  </div>
+  <span class="conn-status" id="conn-status"></span>
+  <button class="btn btn-primary btn-sm" onclick="openModal('nueva-venta')">+ Nueva venta</button>
+</div>
+
+<div class="nav">
+  <button class="nav-btn active" data-id="dashboard" onclick="goTo('dashboard',this)">Dashboard</button>
+  <button class="nav-btn" data-id="ventas" onclick="goTo('ventas',this)">Ventas</button>
+  <button class="nav-btn" data-id="construccion" onclick="goTo('construccion',this)">Construcción</button>
+  <button class="nav-btn" data-id="entrega" onclick="goTo('entrega',this)">Entrega</button>
+  <button class="nav-btn" data-id="alertas" onclick="goTo('alertas',this)">Alertas</button>
+</div>
+
+<div class="content">
+
+<!-- MODAL NUEVA VENTA -->
+<div class="overlay" id="modal-nueva-venta">
+<div class="modal">
+  <div class="modal-hd">Nueva venta de casa <button class="btn btn-sm" onclick="closeModal('nueva-venta')">✕</button></div>
+  <div class="step-tabs">
+    <button class="step-tab active" onclick="stepTab('nv','cliente',this)">1. Cliente</button>
+    <button class="step-tab" onclick="stepTab('nv','casa',this)">2. Casa</button>
+    <button class="step-tab" onclick="stepTab('nv','financiero',this)">3. Financiero</button>
+  </div>
+  <div id="nv-cliente" class="step-content active">
+    <div class="row"><div class="field"><label>Nombre completo *</label><input id="nv-nombre" placeholder="Nombre del comprador"></div></div>
+    <div class="row"><div class="field"><label>Cédula</label><input id="nv-cedula" placeholder="8-000-0000"></div><div class="field"><label>Teléfono</label><input id="nv-tel" placeholder="+507 6000-0000"></div></div>
+    <div class="row"><div class="field"><label>Correo electrónico</label><input id="nv-email" type="email" placeholder="correo@ejemplo.com"></div></div>
+    <div class="row"><div class="field"><label>Banco</label><input id="nv-banco" placeholder="Banco Nacional, La Hipotecaria..."></div><div class="field"><label>Carta promesa</label><select id="nv-carta"><option value="Si">Sí — tiene carta</option><option value="No">No — sin carta</option><option value="En proceso">En proceso</option></select></div></div>
+    <div class="row"><div class="field"><label>Fecha renovación carta</label><input id="nv-carta-fecha" type="date"></div><div class="field"><label>Gastos legales cancelados</label><select id="nv-gastos"><option value="Si">Sí</option><option value="No">No</option></select></div></div>
+    <div class="row"><div class="field"><label>Notas del cliente</label><textarea id="nv-notas"></textarea></div></div>
+  </div>
+  <div id="nv-casa" class="step-content">
+    <div class="row"><div class="field"><label>ID de casa *</label><input id="nv-id" placeholder="Casa 25"></div><div class="field"><label>Modelo</label><select id="nv-modelo"><option>Elizabeth</option><option>Aurora</option><option>Malena</option></select></div></div>
+    <div class="row"><div class="field"><label>Etapa</label><input id="nv-etapa" placeholder="1"></div><div class="field"><label>Contratista</label><input id="nv-cont" placeholder="GVC / CSM"></div></div>
+    <div class="row"><div class="field"><label>Fondo Solidario</label><select id="nv-fondo"><option value="Si">Sí</option><option value="No">No</option></select></div><div class="field"><label>Inicio de construcción</label><input id="nv-inicio" type="date"></div></div>
+    <div class="row"><div class="field"><label>Monto del proyecto ($)</label><input id="nv-monto-proy" type="number" placeholder="29800"></div></div>
+  </div>
+  <div id="nv-financiero" class="step-content">
+    <div class="row"><div class="field"><label>Valor de la casa ($)</label><input id="nv-valor" type="number" placeholder="62500"></div><div class="field"><label>CPP ($)</label><input id="nv-cpp" type="number" placeholder="52499"></div></div>
+    <div class="row"><div class="field"><label>Monto de separación ($)</label><input id="nv-sep" type="number" placeholder="40"></div><div class="field"><label>Monto a abonar ($)</label><input id="nv-abonar" type="number" placeholder="0"></div></div>
+    <div class="row"><div class="field"><label>Monto abonado hasta ahora ($)</label><input id="nv-abonado" type="number" placeholder="0"></div></div>
+  </div>
+  <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+    <button class="btn" onclick="closeModal('nueva-venta')">Cancelar</button>
+    <button class="btn btn-primary" id="btn-registrar" onclick="registrarVenta()">Registrar venta</button>
+  </div>
+</div>
+</div>
+
+<!-- MODAL EDITAR CONSTRUCCION -->
+<div class="overlay" id="modal-edit-const">
+<div class="modal">
+  <div class="modal-hd">Construcción — <span id="ec-title"></span> <button class="btn btn-sm" onclick="closeModal('edit-const')">✕</button></div>
+  <div class="row"><div class="field"><label>Inicio de construcción</label><input id="ec-inicio" type="date"></div><div class="field"><label>Semana de avance</label><input id="ec-semana" type="number"></div></div>
+  <div class="row"><div class="field"><label>Avance real (0.00 – 1.00)</label><input id="ec-avreal" type="number" step="0.01" min="0" max="1"></div><div class="field"><label>Avance planificado (0.00 – 1.00)</label><input id="ec-avplan" type="number" step="0.01" min="0" max="1"></div></div>
+  <div class="row"><div class="field"><label>Pago real al contratista ($)</label><input id="ec-pagoreal" type="number"></div><div class="field"><label>Contratista</label><input id="ec-cont"></div></div>
+  <div class="row"><div class="field"><label>Notas de construcción</label><textarea id="ec-notas"></textarea></div></div>
+  <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
+    <button class="btn" onclick="closeModal('edit-const')">Cancelar</button>
+    <button class="btn btn-primary" onclick="guardarConst()">Guardar</button>
+  </div>
+</div>
+</div>
+
+<!-- MODAL EDITAR ENTREGA -->
+<div class="overlay" id="modal-edit-entrega">
+<div class="modal">
+  <div class="modal-hd">Hitos de entrega — <span id="ee-title"></span> <button class="btn btn-sm" onclick="closeModal('edit-entrega')">✕</button></div>
+  <p style="font-size:11px;color:#666;margin-bottom:12px">Actualiza el estado de cada hito de entrega</p>
+  <div id="ee-hitos"></div>
+  <div class="row" style="margin-top:12px"><div class="field"><label>Notas de entrega</label><textarea id="ee-notas"></textarea></div></div>
+  <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
+    <button class="btn" onclick="closeModal('edit-entrega')">Cancelar</button>
+    <button class="btn btn-primary" onclick="guardarEntrega()">Guardar</button>
+  </div>
+</div>
+</div>
+
+<!-- MODAL EDITAR CLIENTE/FINANCIERO -->
+<div class="overlay" id="modal-edit-cliente">
+<div class="modal">
+  <div class="modal-hd">Editar — <span id="ecl-title"></span> <button class="btn btn-sm" onclick="closeModal('edit-cliente')">✕</button></div>
+  <div class="step-tabs">
+    <button class="step-tab active" onclick="stepTab('ecl','info',this)">Cliente</button>
+    <button class="step-tab" onclick="stepTab('ecl','financiero',this)">Financiero</button>
+    <button class="step-tab" onclick="stepTab('ecl','casa',this)">Casa</button>
+  </div>
+  <div id="ecl-info" class="step-content active">
+    <div class="row"><div class="field"><label>Nombre completo</label><input id="ecl-nombre"></div></div>
+    <div class="row"><div class="field"><label>Cédula</label><input id="ecl-cedula"></div><div class="field"><label>Teléfono</label><input id="ecl-tel"></div></div>
+    <div class="row"><div class="field"><label>Correo</label><input id="ecl-email"></div></div>
+    <div class="row"><div class="field"><label>Banco</label><input id="ecl-banco"></div><div class="field"><label>Carta promesa</label><select id="ecl-carta"><option value="Si">Sí</option><option value="No">No</option><option value="En proceso">En proceso</option></select></div></div>
+    <div class="row"><div class="field"><label>Fecha renovación carta</label><input id="ecl-carta-fecha" type="date"></div><div class="field"><label>Gastos legales</label><select id="ecl-gastos"><option value="Si">Sí</option><option value="No">No</option></select></div></div>
+    <div class="row"><div class="field"><label>Notas del cliente</label><textarea id="ecl-notas"></textarea></div></div>
+  </div>
+  <div id="ecl-financiero" class="step-content">
+    <div class="row"><div class="field"><label>Valor de la casa ($)</label><input id="ecl-valor" type="number"></div><div class="field"><label>CPP ($)</label><input id="ecl-cpp" type="number"></div></div>
+    <div class="row"><div class="field"><label>Monto separación ($)</label><input id="ecl-sep" type="number"></div><div class="field"><label>Monto a abonar ($)</label><input id="ecl-abonar" type="number"></div></div>
+    <div class="row"><div class="field"><label>Abonado ($)</label><input id="ecl-abonado" type="number"></div></div>
+  </div>
+  <div id="ecl-casa" class="step-content">
+    <div class="row"><div class="field"><label>Modelo</label><select id="ecl-modelo"><option>Elizabeth</option><option>Aurora</option><option>Malena</option></select></div><div class="field"><label>Etapa</label><input id="ecl-etapa"></div></div>
+    <div class="row"><div class="field"><label>Fondo Solidario</label><select id="ecl-fondo"><option value="Si">Sí</option><option value="No">No</option></select></div></div>
+  </div>
+  <div style="display:flex;justify-content:space-between;margin-top:16px">
+    <button class="btn btn-sm btn-danger" onclick="eliminarCasa()">Eliminar casa</button>
+    <div style="display:flex;gap:8px"><button class="btn" onclick="closeModal('edit-cliente')">Cancelar</button><button class="btn btn-primary" onclick="guardarCliente()">Guardar</button></div>
+  </div>
+</div>
+</div>
+
+<!-- SCREENS -->
+<div id="screen-dashboard" class="screen active">
+  <div class="pill-tabs" id="df-pills">
+    <button class="pill active" onclick="setDf('all',this)">Todos</button>
+    <button class="pill" onclick="setDf('Elizabeth',this)">Elizabeth</button>
+    <button class="pill" onclick="setDf('Aurora',this)">Aurora</button>
+    <button class="pill" onclick="setDf('Malena',this)">Malena</button>
+  </div>
+  <div class="stat-grid" id="dash-stats"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+    <div class="card"><div class="section-hd">Avance de construcción</div><div id="dash-constr"></div></div>
+    <div class="card"><div class="section-hd">Progreso de hitos de entrega</div><div id="dash-entrega"></div></div>
+  </div>
+  <div class="card"><div class="section-hd">Casas — vista rápida</div>
+    <div class="tbl-wrap" style="margin-bottom:0"><table>
+      <colgroup><col style="width:85px"><col style="width:80px"><col style="width:160px"><col style="width:75px"><col style="width:80px"><col style="width:80px"><col style="width:80px"></colgroup>
+      <thead><tr><th>Casa</th><th>Modelo</th><th>Cliente</th><th>Carta</th><th>Constr.</th><th>Hitos</th><th>Acción</th></tr></thead>
+      <tbody id="dash-tbl"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<div id="screen-ventas" class="screen">
+  <div class="filter-row">
+    <input placeholder="Buscar cliente, casa, cédula..." id="fv-search" oninput="renderVentas()">
+    <select id="fv-modelo" onchange="renderVentas()"><option value="">Todos los modelos</option><option>Elizabeth</option><option>Aurora</option><option>Malena</option></select>
+    <select id="fv-carta" onchange="renderVentas()"><option value="">Todas las cartas</option><option value="Si">Con carta</option><option value="No">Sin carta</option><option value="En proceso">En proceso</option></select>
+  </div>
+  <div class="tbl-wrap"><table>
+    <colgroup><col style="width:80px"><col style="width:80px"><col style="width:155px"><col style="width:70px"><col style="width:85px"><col style="width:70px"><col style="width:85px"><col style="width:85px"><col style="width:85px"><col style="width:75px"></colgroup>
+    <thead><tr><th>Casa</th><th>Modelo</th><th>Cliente</th><th>Cédula</th><th>Banco</th><th>Carta</th><th>Valor</th><th>CPP</th><th>Abonado</th><th>Acción</th></tr></thead>
+    <tbody id="tbody-ven"></tbody>
+  </table></div>
+</div>
+
+<div id="screen-construccion" class="screen">
+  <div class="filter-row">
+    <input placeholder="Buscar casa..." id="fc-search" oninput="renderConst()">
+    <select id="fc-modelo" onchange="renderConst()"><option value="">Todos los modelos</option><option>Elizabeth</option><option>Aurora</option><option>Malena</option></select>
+  </div>
+  <div class="tbl-wrap"><table>
+    <colgroup><col style="width:80px"><col style="width:80px"><col style="width:65px"><col style="width:90px"><col style="width:100px"><col style="width:110px"><col style="width:70px"><col style="width:95px"><col style="width:90px"><col style="width:75px"></colgroup>
+    <thead><tr><th>Casa</th><th>Modelo</th><th>Etapa</th><th>Contratista</th><th>Inicio</th><th>Avance</th><th>Semana</th><th>Pago proy.</th><th>Pago real</th><th>Acción</th></tr></thead>
+    <tbody id="tbody-const"></tbody>
+  </table></div>
+</div>
+
+<div id="screen-entrega" class="screen">
+  <div class="filter-row">
+    <select id="fe-modelo" onchange="renderEntrega()"><option value="">Todos los modelos</option><option>Elizabeth</option><option>Aurora</option><option>Malena</option></select>
+    <select id="fe-estado" onchange="renderEntrega()"><option value="">Todos</option><option value="pendiente">Con pendientes</option><option value="completo">Todo completo</option></select>
+  </div>
+  <div class="tbl-wrap"><table>
+    <colgroup><col style="width:80px"><col style="width:80px"><col style="width:105px"><col style="width:105px"><col style="width:100px"><col style="width:100px"><col style="width:100px"><col style="width:100px"><col style="width:75px"></colgroup>
+    <thead><tr><th>Casa</th><th>Modelo</th><th>Perm. constr.</th><th>Insp. MIVIOT</th><th>Bomberos</th><th>MINSA</th><th>Municipio</th><th>Desembolso</th><th>Acción</th></tr></thead>
+    <tbody id="tbody-ent"></tbody>
+  </table></div>
+</div>
+
+<div id="screen-alertas" class="screen">
+  <div class="section-hd">Alertas activas</div>
+  <div id="alertas-list" style="margin-top:10px"></div>
+</div>
+
+<div id="screen-casa" class="screen">
+  <button class="back-btn" onclick="volverLista()">← Volver</button>
+  <div id="casa-detail"></div>
+</div>
+
+</div><!-- end content -->
+</div><!-- end main-app -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+const HITOS_NOMBRES=['Permiso de construcción','Inspección MIVIOT','Perm. ocupación bomberos','Perm. ocupación MINSA','Perm. ocupación municipio','Carta resolución MIVIOT','Avalúo bancario','Escritura','Desembolso banco','Desembolso MIVIOT'];
+const HITO_KEYS=['h1','h2','h3','h4','h5','h6','h7','h8','h9','h10'];
+
+let sb=null, casas=[], dfModel='all', editIdx=-1, editUuid=null, prevScreen='dashboard', modoLocal=false;
+
+// ── UTILS ──
+const fmt=n=>n!=null&&n!==''?'$'+Number(n).toLocaleString('es',{maximumFractionDigits:0}):'—';
+const pct=v=>v!=null?Math.round(Number(v)*100):0;
+const mBadge=m=>m==='Malena'?'<span class="badge b-purple">Malena</span>':m==='Elizabeth'?'<span class="badge b-teal">Elizabeth</span>':'<span class="badge b-amber">Aurora</span>';
+const hBadge=s=>s==='1'?'<span class="badge b-green">Completo</span>':s==='2'?'<span class="badge b-blue">En proceso</span>':'<span class="badge b-amber">Pendiente</span>';
+const cartaBadge=c=>c==='Si'?'<span class="badge b-green">Sí</span>':c==='En proceso'?'<span class="badge b-blue">En proceso</span>':'<span class="badge b-amber">No</span>';
+
+function toast(msg,err=false){const t=document.getElementById('toast');t.textContent=msg;t.style.background=err?'#dc2626':'#1a1a1a';t.style.display='block';setTimeout(()=>t.style.display='none',2800);}
+
+document.getElementById('hoy').textContent=new Date().toLocaleDateString('es-PA',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+
+// ── LOGIN ──
+const SB_URL='https://ugvmwxgtcceyrfvyskjw.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVndm13eGd0Y2NleXJmdnlza2p3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1OTQ0NzcsImV4cCI6MjA5MTE3MDQ3N30.uKuT-9AAK3kiB-lNjbvOYkPVqFJ6TuQOF5kCCesV5Uk';
+const APP_PASSWORD='PromotoraVFC228';
+
+async function entrarConContrasena(){
+  const pwd=document.getElementById('login-pwd').value;
+  const err=document.getElementById('login-error');
+  if(pwd!==APP_PASSWORD){err.style.display='block';return;}
+  err.style.display='none';
+  try{
+    sb=supabase.createClient(SB_URL,SB_KEY);
+    const {error}=await sb.from('casas').select('id').limit(1);
+    if(error)throw error;
+    modoLocal=false;
+    iniciarApp(true);
+  }catch(e){
+    modoLocal=true;casas=getDemoData();iniciarApp(false);
+  }
+}
+
+function iniciarApp(conSupabase){
+  document.getElementById('setup-screen').style.display='none';
+  document.getElementById('main-app').style.display='block';
+  const s=document.getElementById('conn-status');
+  if(conSupabase){s.textContent='Conectado';s.className='conn-status conn-ok';}
+  else{s.textContent='Sin conexión BD';s.className='conn-status conn-err';}
+  cargarCasas();
+}
+
+// ── DATA ──
+async function cargarCasas(){
+  if(modoLocal){renderAll();return;}
+  try{
+    const {data,error}=await sb.from('casas').select('*').order('created_at');
+    if(error)throw error;
+    casas=data.map(dbToLocal);
+    renderAll();
+  }catch(e){toast('Error cargando datos: '+e.message,true);}
+}
+
+function dbToLocal(r){
+  return{uuid:r.id,id:r.casa_id,modelo:r.modelo||'Elizabeth',etapa:r.etapa||'1',cont:r.contratista||'',inicio:r.inicio_construccion||'',semana:r.semana_avance,avReal:r.avance_real||0,avPlan:r.avance_plan||0,monto:r.monto_proyecto,pagoReal:r.pago_real,pagoProy:r.monto_proyecto,valor:r.valor_casa,cpp:r.cpp,sep:r.separacion||0,abonar:r.monto_abonar||0,abonado:r.abonado||0,fondo:r.fondo_solidario||'No',nombre:r.nombre_cliente||'',cedula:r.cedula||'',tel:r.telefono||'',email:r.email||'',banco:r.banco||'',carta:r.carta_promesa||'No',cartaFecha:r.carta_fecha||'',gastos:r.gastos_legales||'No',notasCliente:r.notas_cliente||'',notasConst:r.notas_construccion||'',notasEntrega:r.notas_entrega||'',hitos:r.hitos||{h1:'3',h2:'3',h3:'3',h4:'3',h5:'3',h6:'3',h7:'3',h8:'3',h9:'3',h10:'3'}};
+}
+
+function localToDB(c){
+  return{casa_id:c.id,modelo:c.modelo,etapa:c.etapa,contratista:c.cont,inicio_construccion:c.inicio||null,semana_avance:c.semana||null,avance_real:c.avReal||0,avance_plan:c.avPlan||0,monto_proyecto:c.monto||null,pago_real:c.pagoReal||null,valor_casa:c.valor||null,cpp:c.cpp||null,separacion:c.sep||0,monto_abonar:c.abonar||0,abonado:c.abonado||0,fondo_solidario:c.fondo,nombre_cliente:c.nombre,cedula:c.cedula,telefono:c.tel,email:c.email,banco:c.banco,carta_promesa:c.carta,carta_fecha:c.cartaFecha||null,gastos_legales:c.gastos,notas_cliente:c.notasCliente,notas_construccion:c.notasConst,notas_entrega:c.notasEntrega,hitos:c.hitos,updated_at:new Date().toISOString()};
+}
+
+async function guardarCasa(c){
+  if(modoLocal)return true;
+  const data=localToDB(c);
+  try{
+    if(c.uuid){
+      const {error}=await sb.from('casas').update(data).eq('id',c.uuid);
+      if(error)throw error;
+    }else{
+      const {data:r,error}=await sb.from('casas').insert(data).select().single();
+      if(error)throw error;
+      c.uuid=r.id;
+    }
+    return true;
+  }catch(e){toast('Error guardando: '+e.message,true);return false;}
+}
+
+async function borrarCasaDB(uuid){
+  if(modoLocal)return true;
+  try{const {error}=await sb.from('casas').delete().eq('id',uuid);if(error)throw error;return true;}
+  catch(e){toast('Error eliminando: '+e.message,true);return false;}
+}
+
+// ── NAV ──
+function goTo(id,btn){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  if(btn){btn.classList.add('active');}
+  else{const b=document.querySelector('.nav-btn[data-id="'+id+'"]');if(b)b.classList.add('active');}
+  renderAll();
+}
+
+function verCasa(idx){
+  prevScreen=document.querySelector('.nav-btn.active')?.dataset?.id||'dashboard';
+  editIdx=idx;
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-casa').classList.add('active');
+  renderCasaDetail(idx);
+}
+
+function volverLista(){goTo(prevScreen||'dashboard',null);}
+
+function openModal(id){document.getElementById('modal-'+id).classList.add('open');}
+function closeModal(id){document.getElementById('modal-'+id).classList.remove('open');}
+function stepTab(p,tab,btn){
+  const modal=btn.closest('.modal')||btn.closest('.overlay');
+  modal.querySelectorAll('.step-tab').forEach(b=>b.classList.remove('active'));
+  modal.querySelectorAll('.step-content').forEach(s=>s.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(p+'-'+tab).classList.add('active');
+}
+
+function setDf(m,btn){dfModel=m;document.querySelectorAll('#df-pills .pill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderDash();}
+function filtered(){return dfModel==='all'?casas:casas.filter(c=>c.modelo===dfModel);}
+
+// ── CRUD ──
+async function registrarVenta(){
+  const id=document.getElementById('nv-id').value.trim();
+  if(!id){alert('Ingresa el ID de la casa');return;}
+  const btn=document.getElementById('btn-registrar');btn.disabled=true;btn.textContent='Guardando...';
+  const c={id,modelo:document.getElementById('nv-modelo').value,etapa:document.getElementById('nv-etapa').value,cont:document.getElementById('nv-cont').value,inicio:document.getElementById('nv-inicio').value,semana:null,avReal:0,avPlan:0,monto:parseFloat(document.getElementById('nv-monto-proy').value)||null,pagoReal:null,pagoProy:parseFloat(document.getElementById('nv-monto-proy').value)||null,valor:parseFloat(document.getElementById('nv-valor').value)||null,cpp:parseFloat(document.getElementById('nv-cpp').value)||null,sep:parseFloat(document.getElementById('nv-sep').value)||0,abonar:parseFloat(document.getElementById('nv-abonar').value)||0,abonado:parseFloat(document.getElementById('nv-abonado').value)||0,fondo:document.getElementById('nv-fondo').value,nombre:document.getElementById('nv-nombre').value,cedula:document.getElementById('nv-cedula').value,tel:document.getElementById('nv-tel').value,email:document.getElementById('nv-email').value,banco:document.getElementById('nv-banco').value,carta:document.getElementById('nv-carta').value,cartaFecha:document.getElementById('nv-carta-fecha').value,gastos:document.getElementById('nv-gastos').value,notasCliente:document.getElementById('nv-notas').value,notasConst:'',notasEntrega:'',hitos:{h1:'3',h2:'3',h3:'3',h4:'3',h5:'3',h6:'3',h7:'3',h8:'3',h9:'3',h10:'3'}};
+  const ok=await guardarCasa(c);
+  if(ok){casas.push(c);closeModal('nueva-venta');toast('Casa '+id+' registrada');['nv-nombre','nv-cedula','nv-tel','nv-email','nv-banco','nv-id','nv-etapa','nv-cont','nv-notas','nv-carta-fecha','nv-monto-proy','nv-valor','nv-cpp','nv-sep','nv-abonar','nv-abonado'].forEach(i=>document.getElementById(i).value='');renderAll();}
+  btn.disabled=false;btn.textContent='Registrar venta';
+}
+
+function abrirEditConst(idx){
+  editIdx=idx;const c=casas[idx];
+  document.getElementById('ec-title').textContent=c.id;
+  document.getElementById('ec-inicio').value=c.inicio||'';
+  document.getElementById('ec-semana').value=c.semana||'';
+  document.getElementById('ec-avreal').value=c.avReal!=null?c.avReal:'';
+  document.getElementById('ec-avplan').value=c.avPlan!=null?c.avPlan:'';
+  document.getElementById('ec-pagoreal').value=c.pagoReal||'';
+  document.getElementById('ec-cont').value=c.cont||'';
+  document.getElementById('ec-notas').value=c.notasConst||'';
+  openModal('edit-const');
+}
+
+async function guardarConst(){
+  const c=casas[editIdx];
+  c.inicio=document.getElementById('ec-inicio').value;
+  c.semana=parseInt(document.getElementById('ec-semana').value)||null;
+  c.avReal=parseFloat(document.getElementById('ec-avreal').value)||0;
+  c.avPlan=parseFloat(document.getElementById('ec-avplan').value)||0;
+  c.pagoReal=parseFloat(document.getElementById('ec-pagoreal').value)||null;
+  c.cont=document.getElementById('ec-cont').value;
+  c.notasConst=document.getElementById('ec-notas').value;
+  await guardarCasa(c);closeModal('edit-const');toast('Construcción actualizada');renderAll();
+  if(document.getElementById('screen-casa').classList.contains('active'))renderCasaDetail(editIdx);
+}
+
+function abrirEditEntrega(idx){
+  editIdx=idx;const c=casas[idx];
+  document.getElementById('ee-title').textContent=c.id;
+  document.getElementById('ee-notas').value=c.notasEntrega||'';
+  document.getElementById('ee-hitos').innerHTML=HITOS_NOMBRES.map((n,i)=>{const k=HITO_KEYS[i];return`<div class="hito-row"><span class="hito-lbl">${n}</span><select style="width:130px;font-size:11px" id="ee-${k}"><option value="1"${c.hitos[k]==='1'?' selected':''}>Completo</option><option value="2"${c.hitos[k]==='2'?' selected':''}>En proceso</option><option value="3"${c.hitos[k]==='3'?' selected':''}>Pendiente</option></select></div>`;}).join('');
+  openModal('edit-entrega');
+}
+
+async function guardarEntrega(){
+  const c=casas[editIdx];
+  HITO_KEYS.forEach(k=>c.hitos[k]=document.getElementById('ee-'+k).value);
+  c.notasEntrega=document.getElementById('ee-notas').value;
+  await guardarCasa(c);closeModal('edit-entrega');toast('Hitos actualizados');renderAll();
+  if(document.getElementById('screen-casa').classList.contains('active'))renderCasaDetail(editIdx);
+}
+
+function abrirEditCliente(idx){
+  editIdx=idx;const c=casas[idx];
+  document.getElementById('ecl-title').textContent=c.id;
+  document.getElementById('ecl-nombre').value=c.nombre||'';
+  document.getElementById('ecl-cedula').value=c.cedula||'';
+  document.getElementById('ecl-tel').value=c.tel||'';
+  document.getElementById('ecl-email').value=c.email||'';
+  document.getElementById('ecl-banco').value=c.banco||'';
+  document.getElementById('ecl-carta').value=c.carta||'No';
+  document.getElementById('ecl-carta-fecha').value=c.cartaFecha||'';
+  document.getElementById('ecl-gastos').value=c.gastos||'No';
+  document.getElementById('ecl-notas').value=c.notasCliente||'';
+  document.getElementById('ecl-valor').value=c.valor||'';
+  document.getElementById('ecl-cpp').value=c.cpp||'';
+  document.getElementById('ecl-sep').value=c.sep||'';
+  document.getElementById('ecl-abonar').value=c.abonar||'';
+  document.getElementById('ecl-abonado').value=c.abonado||'';
+  document.getElementById('ecl-modelo').value=c.modelo||'Elizabeth';
+  document.getElementById('ecl-etapa').value=c.etapa||'';
+  document.getElementById('ecl-fondo').value=c.fondo||'No';
+  stepTab('ecl','info',document.querySelector('#modal-edit-cliente .step-tab'));
+  openModal('edit-cliente');
+}
+
+async function guardarCliente(){
+  const c=casas[editIdx];
+  c.nombre=document.getElementById('ecl-nombre').value;c.cedula=document.getElementById('ecl-cedula').value;c.tel=document.getElementById('ecl-tel').value;c.email=document.getElementById('ecl-email').value;c.banco=document.getElementById('ecl-banco').value;c.carta=document.getElementById('ecl-carta').value;c.cartaFecha=document.getElementById('ecl-carta-fecha').value;c.gastos=document.getElementById('ecl-gastos').value;c.notasCliente=document.getElementById('ecl-notas').value;
+  c.valor=parseFloat(document.getElementById('ecl-valor').value)||null;c.cpp=parseFloat(document.getElementById('ecl-cpp').value)||null;c.sep=parseFloat(document.getElementById('ecl-sep').value)||0;c.abonar=parseFloat(document.getElementById('ecl-abonar').value)||0;c.abonado=parseFloat(document.getElementById('ecl-abonado').value)||0;
+  c.modelo=document.getElementById('ecl-modelo').value;c.etapa=document.getElementById('ecl-etapa').value;c.fondo=document.getElementById('ecl-fondo').value;
+  await guardarCasa(c);closeModal('edit-cliente');toast('Datos actualizados');renderAll();
+  if(document.getElementById('screen-casa').classList.contains('active'))renderCasaDetail(editIdx);
+}
+
+async function eliminarCasa(){
+  const c=casas[editIdx];
+  if(!confirm('¿Eliminar '+c.id+'? Esta acción no se puede deshacer.'))return;
+  const ok=await borrarCasaDB(c.uuid);
+  if(ok||modoLocal){casas.splice(editIdx,1);closeModal('edit-cliente');toast('Casa eliminada');goTo('dashboard',null);}
+}
+
+// ── RENDERS ──
+function renderCasaDetail(idx){
+  const c=casas[idx];
+  const pendiente=Math.max(0,(c.abonar||0)-(c.abonado||0));
+  const hC=HITO_KEYS.filter(k=>c.hitos[k]==='1').length;
+  document.getElementById('casa-detail').innerHTML=`
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div><div style="font-size:20px;font-weight:700">${c.id}</div><div style="display:flex;gap:8px;margin-top:5px;align-items:center">${mBadge(c.modelo)}<span style="font-size:12px;color:#666">Etapa ${c.etapa||'—'} · ${c.cont||'—'}</span></div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-sm" onclick="abrirEditCliente(${idx})">Editar cliente</button>
+      <button class="btn btn-sm" onclick="abrirEditConst(${idx})">Editar construcción</button>
+      <button class="btn btn-sm" onclick="abrirEditEntrega(${idx})">Editar entrega</button>
+    </div>
+  </div>
+  <div class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(110px,1fr))">
+    <div class="stat"><div class="stat-lbl">Avance construcción</div><div class="stat-val">${pct(c.avReal)}%</div></div>
+    <div class="stat"><div class="stat-lbl">Hitos completados</div><div class="stat-val">${hC}/${HITO_KEYS.length}</div></div>
+    <div class="stat"><div class="stat-lbl">Abono pendiente</div><div class="stat-val" style="font-size:16px;color:${pendiente>0?'#dc2626':'#15803d'}">${fmt(pendiente)}</div></div>
+    <div class="stat"><div class="stat-lbl">Valor de la casa</div><div class="stat-val" style="font-size:16px">${fmt(c.valor)}</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div class="card"><div class="card-hd">Datos del cliente</div>
+      <div class="info-grid">
+        <div><div class="info-lbl">Nombre</div><div class="info-val">${c.nombre||'—'}</div></div>
+        <div><div class="info-lbl">Cédula</div><div class="info-val">${c.cedula||'—'}</div></div>
+        <div><div class="info-lbl">Teléfono</div><div class="info-val">${c.tel||'—'}</div></div>
+        <div><div class="info-lbl">Correo</div><div class="info-val" style="font-size:11px;word-break:break-all">${c.email||'—'}</div></div>
+        <div><div class="info-lbl">Banco</div><div class="info-val">${c.banco||'—'}</div></div>
+        <div><div class="info-lbl">Carta promesa</div><div class="info-val">${cartaBadge(c.carta)}</div></div>
+        <div><div class="info-lbl">Fondo Solidario</div><div class="info-val">${c.fondo||'—'}</div></div>
+        <div><div class="info-lbl">Gastos legales</div><div class="info-val">${c.gastos||'—'}</div></div>
+        ${c.cartaFecha?`<div><div class="info-lbl">Renovación carta</div><div class="info-val">${c.cartaFecha}</div></div>`:''}
+      </div>
+      ${c.notasCliente?`<div style="font-size:11px;color:#555;margin-top:8px;padding-top:8px;border-top:1px solid #e5e5e3">${c.notasCliente}</div>`:''}
+    </div>
+    <div class="card"><div class="card-hd">Financiero</div>
+      <div class="info-grid">
+        <div><div class="info-lbl">Valor de la casa</div><div class="info-val">${fmt(c.valor)}</div></div>
+        <div><div class="info-lbl">CPP</div><div class="info-val">${fmt(c.cpp)}</div></div>
+        <div><div class="info-lbl">Monto separación</div><div class="info-val">${fmt(c.sep)}</div></div>
+        <div><div class="info-lbl">Monto a abonar</div><div class="info-val">${fmt(c.abonar)}</div></div>
+        <div><div class="info-lbl">Abonado</div><div class="info-val">${fmt(c.abonado)}</div></div>
+        <div><div class="info-lbl">Pendiente</div><div class="info-val" style="color:${pendiente>0?'#dc2626':'#15803d'}">${fmt(pendiente)}</div></div>
+        <div><div class="info-lbl">Monto proyecto</div><div class="info-val">${fmt(c.monto)}</div></div>
+        <div><div class="info-lbl">Pago real contr.</div><div class="info-val">${fmt(c.pagoReal)}</div></div>
+      </div>
+    </div>
+    <div class="card"><div class="card-hd">Construcción</div>
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>Avance real</span><span style="font-weight:600">${pct(c.avReal)}%</span></div>
+        <div class="prog"><div class="prog-fill" style="width:${pct(c.avReal)}%;background:#2563eb"></div></div>
+      </div>
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>Avance planificado</span><span style="font-weight:600">${pct(c.avPlan)}%</span></div>
+        <div class="prog"><div class="prog-fill" style="width:${pct(c.avPlan)}%;background:#aaa"></div></div>
+      </div>
+      <div class="info-grid">
+        <div><div class="info-lbl">Inicio</div><div class="info-val">${c.inicio||'—'}</div></div>
+        <div><div class="info-lbl">Semana</div><div class="info-val">${c.semana!=null?'Sem. '+c.semana:'—'}</div></div>
+        <div><div class="info-lbl">Contratista</div><div class="info-val">${c.cont||'—'}</div></div>
+        <div><div class="info-lbl">Pago proyectado</div><div class="info-val">${fmt(c.monto)}</div></div>
+      </div>
+      ${c.notasConst?`<div style="font-size:11px;color:#555;margin-top:8px;padding-top:8px;border-top:1px solid #e5e5e3">${c.notasConst}</div>`:''}
+    </div>
+    <div class="card"><div class="card-hd">Hitos de entrega</div>
+      ${HITOS_NOMBRES.map((n,i)=>`<div class="hito-row"><span class="hito-lbl">${n}</span>${hBadge(c.hitos[HITO_KEYS[i]])}</div>`).join('')}
+      ${c.notasEntrega?`<div style="font-size:11px;color:#555;margin-top:8px;padding-top:8px;border-top:1px solid #e5e5e3">${c.notasEntrega}</div>`:''}
+    </div>
+  </div>`;
+}
+
+function renderDash(){
+  const d=filtered();
+  const total=d.length,conCliente=d.filter(c=>c.nombre).length,conCarta=d.filter(c=>c.carta==='Si').length;
+  const terminadas=d.filter(c=>Number(c.avReal)>=1).length;
+  const desembolsadas=d.filter(c=>c.hitos.h9==='1').length;
+  document.getElementById('dash-stats').innerHTML=`
+    <div class="stat"><div class="stat-lbl">Total casas</div><div class="stat-val">${total}</div></div>
+    <div class="stat"><div class="stat-lbl">Con cliente</div><div class="stat-val">${conCliente}</div><div class="stat-sub">${total?Math.round(conCliente/total*100):0}%</div></div>
+    <div class="stat"><div class="stat-lbl">Carta promesa</div><div class="stat-val">${conCarta}</div></div>
+    <div class="stat"><div class="stat-lbl">Constr. terminada</div><div class="stat-val">${terminadas}</div></div>
+    <div class="stat"><div class="stat-lbl">Desembolsadas</div><div class="stat-val">${desembolsadas}</div></div>
+  `;
+  const modelos=['Elizabeth','Malena','Aurora'],cols=['#0f766e','#6d28d9','#a16207'];
+  document.getElementById('dash-constr').innerHTML=modelos.map((m,i)=>{
+    const sub=d.filter(c=>c.modelo===m);
+    const avg=sub.length?Math.round(sub.reduce((a,c)=>a+Number(c.avReal||0),0)/sub.length*100):0;
+    return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="font-size:12px;min-width:78px;color:#666">${m} (${sub.length})</span><div class="prog" style="flex:1"><div class="prog-fill" style="width:${avg}%;background:${cols[i]}"></div></div><span style="font-size:11px;min-width:30px;text-align:right;font-weight:600">${avg}%</span></div>`;
+  }).join('');
+  document.getElementById('dash-entrega').innerHTML=modelos.map((m,i)=>{
+    const sub=d.filter(c=>c.modelo===m);
+    const avgH=sub.length?Math.round(sub.reduce((a,c)=>a+HITO_KEYS.filter(k=>c.hitos[k]==='1').length,0)/(sub.length*HITO_KEYS.length)*100):0;
+    return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="font-size:12px;min-width:78px;color:#666">${m}</span><div class="prog" style="flex:1"><div class="prog-fill" style="width:${avgH}%;background:${cols[i]}"></div></div><span style="font-size:11px;min-width:30px;text-align:right;font-weight:600">${avgH}%</span></div>`;
+  }).join('');
+  document.getElementById('dash-tbl').innerHTML=d.map(c=>{
+    const idx=casas.indexOf(c),p=pct(c.avReal),hC=HITO_KEYS.filter(k=>c.hitos[k]==='1').length;
+    return`<tr><td style="font-weight:600">${c.id}</td><td>${mBadge(c.modelo)}</td><td>${c.nombre||'<span style="color:#888">Sin cliente</span>'}</td><td>${cartaBadge(c.carta)}</td><td><div style="display:flex;align-items:center;gap:5px"><div class="prog" style="width:50px"><div class="prog-fill" style="width:${p}%;background:${p>=100?'#15803d':'#2563eb'}"></div></div><span style="font-size:11px">${p}%</span></div></td><td><span style="font-size:12px;font-weight:500">${hC}/${HITO_KEYS.length}</span></td><td><button class="btn btn-sm" onclick="verCasa(${idx})">Ver</button></td></tr>`;
+  }).join('');
+}
+
+function renderVentas(){
+  const search=(document.getElementById('fv-search').value||'').toLowerCase();
+  const modelo=document.getElementById('fv-modelo').value;
+  const carta=document.getElementById('fv-carta').value;
+  const d=casas.filter(c=>{
+    if(modelo&&c.modelo!==modelo)return false;
+    if(carta&&c.carta!==carta)return false;
+    if(search&&!c.id.toLowerCase().includes(search)&&!(c.nombre||'').toLowerCase().includes(search)&&!(c.cedula||'').includes(search))return false;
+    return true;
+  });
+  document.getElementById('tbody-ven').innerHTML=d.map(c=>{
+    const idx=casas.indexOf(c);
+    return`<tr><td style="font-weight:600">${c.id}</td><td>${mBadge(c.modelo)}</td><td>${c.nombre||'<span style="color:#888">Sin asignar</span>'}</td><td style="color:#666">${c.cedula||'—'}</td><td style="font-size:11px">${c.banco||'—'}</td><td>${cartaBadge(c.carta)}</td><td>${fmt(c.valor)}</td><td>${fmt(c.cpp)}</td><td>${fmt(c.abonado)}</td><td><button class="btn btn-sm" onclick="verCasa(${idx})">Ver</button></td></tr>`;
+  }).join('');
+}
+
+function renderConst(){
+  const search=(document.getElementById('fc-search').value||'').toLowerCase();
+  const modelo=document.getElementById('fc-modelo').value;
+  const d=casas.filter(c=>{
+    if(modelo&&c.modelo!==modelo)return false;
+    if(search&&!c.id.toLowerCase().includes(search))return false;
+    return true;
+  });
+  document.getElementById('tbody-const').innerHTML=d.map(c=>{
+    const idx=casas.indexOf(c),p=pct(c.avReal);
+    const bar=`<div style="display:flex;align-items:center;gap:5px"><div class="prog" style="width:55px"><div class="prog-fill" style="width:${p}%;background:${p>=100?'#15803d':'#2563eb'}"></div></div><span style="font-size:11px">${p}%</span></div>`;
+    return`<tr><td style="font-weight:600">${c.id}</td><td>${mBadge(c.modelo)}</td><td>${c.etapa||'—'}</td><td style="color:#666">${c.cont||'—'}</td><td style="color:#666">${c.inicio||'—'}</td><td>${bar}</td><td>${c.semana!=null?'S.'+c.semana:'—'}</td><td>${fmt(c.monto)}</td><td>${fmt(c.pagoReal)}</td><td><button class="btn btn-sm" onclick="abrirEditConst(${idx})">Editar</button></td></tr>`;
+  }).join('');
+}
+
+function renderEntrega(){
+  const modelo=document.getElementById('fe-modelo').value;
+  const estado=document.getElementById('fe-estado').value;
+  const d=casas.filter(c=>{
+    if(modelo&&c.modelo!==modelo)return false;
+    if(estado==='pendiente'&&!HITO_KEYS.some(k=>c.hitos[k]==='3'))return false;
+    if(estado==='completo'&&HITO_KEYS.some(k=>c.hitos[k]!=='1'))return false;
+    return true;
+  });
+  document.getElementById('tbody-ent').innerHTML=d.map(c=>{
+    const idx=casas.indexOf(c);
+    return`<tr><td style="font-weight:600">${c.id}</td><td>${mBadge(c.modelo)}</td>${['h1','h2','h3','h4','h5','h6'].map(k=>`<td>${hBadge(c.hitos[k])}</td>`).join('')}<td><button class="btn btn-sm" onclick="abrirEditEntrega(${idx})">Editar</button></td></tr>`;
+  }).join('');
+}
+
+function renderAlertas(){
+  const items=[];
+  casas.forEach((c,i)=>{
+    if(!c.nombre)items.push({color:'#94a3b8',msg:`${c.id} (${c.modelo}) — sin cliente asignado`});
+    if(c.nombre&&c.carta==='No')items.push({color:'#f59e0b',msg:`${c.id} — ${c.nombre}: sin carta promesa`});
+    if(c.nombre&&c.carta==='En proceso')items.push({color:'#3b82f6',msg:`${c.id} — ${c.nombre}: carta promesa en proceso`});
+    const pend=Math.max(0,(c.abonar||0)-(c.abonado||0));
+    if(pend>0)items.push({color:'#ef4444',msg:`${c.id} — ${c.nombre||'sin cliente'}: abono pendiente ${fmt(pend)}`});
+    HITO_KEYS.forEach((k,j)=>{if(c.hitos[k]==='3')items.push({color:'#94a3b8',msg:`${c.id} — ${HITOS_NOMBRES[j]}: pendiente`});});
+  });
+  document.getElementById('alertas-list').innerHTML=items.length===0?'<p style="color:#888;font-size:13px">Sin alertas activas.</p>':items.slice(0,50).map(a=>`<div class="alert-item"><div class="dot" style="background:${a.color}"></div><span>${a.msg}</span></div>`).join('');
+}
+
+function renderAll(){
+  const screens={dashboard:renderDash,ventas:renderVentas,construccion:renderConst,entrega:renderEntrega,alertas:renderAlertas};
+  Object.entries(screens).forEach(([id,fn])=>{if(document.getElementById('screen-'+id)?.classList.contains('active'))fn();});
+  // always re-render casa detail if visible
+  if(document.getElementById('screen-casa')?.classList.contains('active')&&editIdx>=0)renderCasaDetail(editIdx);
+}
+
+// ── DEMO DATA ──
+function getDemoData(){
+  return[
+    {id:'Casa 73',modelo:'Malena',etapa:'1',cont:'GVC',inicio:'2022-04-04',semana:209,avReal:1,avPlan:1,monto:34000,pagoReal:32357,pagoProy:34000,valor:69999,cpp:59999,sep:40,abonar:0,abonado:0,fondo:'Si',nombre:'Rogelio Morcillo',cedula:'8-705-1837',tel:'',email:'',banco:'Banco Nacional',carta:'Si',cartaFecha:'',gastos:'Si',notasCliente:'',notasConst:'',notasEntrega:'',hitos:{h1:'1',h2:'1',h3:'1',h4:'1',h5:'1',h6:'1',h7:'1',h8:'1',h9:'1',h10:'1'}},
+    {id:'Casa 74',modelo:'Elizabeth',etapa:'1',cont:'GVC',inicio:'2022-04-10',semana:208,avReal:1,avPlan:1,monto:29800,pagoReal:28158,pagoProy:29800,valor:62499,cpp:52499,sep:40,abonar:0,abonado:0,fondo:'Si',nombre:'Oskar Castillo',cedula:'',tel:'',email:'',banco:'Banco Nacional',carta:'Si',cartaFecha:'',gastos:'Si',notasCliente:'',notasConst:'',notasEntrega:'',hitos:{h1:'1',h2:'1',h3:'1',h4:'1',h5:'1',h6:'3',h7:'3',h8:'3',h9:'3',h10:'3'}},
+    {id:'Casa 77',modelo:'Elizabeth',etapa:'1',cont:'GVC',inicio:'2022-04-21',semana:207,avReal:1,avPlan:1,monto:29800,pagoReal:null,pagoProy:29800,valor:65000,cpp:63700,sep:50,abonar:1300,abonado:1300,fondo:'No',nombre:'Nestor Vallester',cedula:'',tel:'',email:'',banco:'Banco Nacional',carta:'Si',cartaFecha:'',gastos:'Si',notasCliente:'',notasConst:'',notasEntrega:'',hitos:{h1:'1',h2:'1',h3:'3',h4:'1',h5:'3',h6:'3',h7:'3',h8:'3',h9:'3',h10:'3'}},
+    {id:'Casa 1',modelo:'Malena',etapa:'1',cont:'GVC',inicio:'2022-10-04',semana:183,avReal:1,avPlan:1,monto:34000,pagoReal:16120,pagoProy:34000,valor:70000,cpp:58000,sep:50,abonar:2000,abonado:2000,fondo:'Si',nombre:'Yarineth Martinez',cedula:'',tel:'',email:'',banco:'Banco Nacional',carta:'Si',cartaFecha:'',gastos:'Si',notasCliente:'',notasConst:'',notasEntrega:'',hitos:{h1:'1',h2:'1',h3:'1',h4:'3',h5:'3',h6:'3',h7:'3',h8:'3',h9:'3',h10:'3'}},
+    {id:'Casa 5',modelo:'Elizabeth',etapa:'1',cont:'CSM',inicio:'2023-01-28',semana:166,avReal:1,avPlan:1,monto:29800,pagoReal:1500,pagoProy:29800,valor:62500,cpp:52499,sep:40,abonar:1,abonado:1,fondo:'Si',nombre:'Jessika de Sedas',cedula:'',tel:'',email:'',banco:'La Hipotecaria',carta:'Si',cartaFecha:'',gastos:'No',notasCliente:'',notasConst:'',notasEntrega:'',hitos:{h1:'1',h2:'1',h3:'1',h4:'1',h5:'1',h6:'3',h7:'3',h8:'3',h9:'3',h10:'3'}},
+    {id:'Casa 8',modelo:'Malena',etapa:'-',cont:'-',inicio:'',semana:null,avReal:0,avPlan:0,monto:34000,pagoReal:null,pagoProy:34000,valor:65000,cpp:60000,sep:0,abonar:0,abonado:0,fondo:'No',nombre:'',cedula:'',tel:'',email:'',banco:'',carta:'No',cartaFecha:'',gastos:'No',notasCliente:'',notasConst:'',notasEntrega:'',hitos:{h1:'3',h2:'3',h3:'3',h4:'3',h5:'3',h6:'3',h7:'3',h8:'3',h9:'3',h10:'3'}},
+    {id:'A-Casa 1',modelo:'Aurora',etapa:'1',cont:'—',inicio:'',semana:null,avReal:0,avPlan:0,monto:32000,pagoReal:null,pagoProy:32000,valor:60000,cpp:null,sep:0,abonar:0,abonado:0,fondo:'No',nombre:'',cedula:'',tel:'',email:'',banco:'',carta:'No',cartaFecha:'',gastos:'No',notasCliente:'',notasConst:'',notasEntrega:'',hitos:{h1:'3',h2:'3',h3:'3',h4:'3',h5:'3',h6:'3',h7:'3',h8:'3',h9:'3',h10:'3'}},
+  ];
+}
+
+// Auto-login check removed — password screen handles entry
+</script>
+</body>
+</html>
