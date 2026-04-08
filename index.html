@@ -167,6 +167,7 @@ tr:hover td{background:#f9fdf9}
   <button class="nav-btn" data-id="construccion" onclick="goTo('construccion',this)">Construccion</button>
   <button class="nav-btn" data-id="entrega" onclick="goTo('entrega',this)">Entrega</button>
   <button class="nav-btn" data-id="alertas" onclick="goTo('alertas',this)">Alertas</button>
+  <button class="nav-btn" data-id="crm" onclick="goTo('crm',this)">CRM</button>
 </div>
 <div class="content">
 
@@ -177,6 +178,7 @@ tr:hover td{background:#f9fdf9}
     <button class="step-tab active" onclick="stepTab('nv','cliente',this)">1. Cliente</button>
     <button class="step-tab" onclick="stepTab('nv','casa',this)">2. Casa</button>
     <button class="step-tab" onclick="stepTab('nv','financiero',this)">3. Financiero</button>
+    <button class="step-tab" onclick="stepTab('nv','calificacion',this)">4. Calificacion</button>
   </div>
   <div id="nv-cliente" class="step-content active">
     <div class="row"><div class="field"><label>Nombre completo</label><input id="nv-nombre" placeholder="Nombre del comprador"></div></div>
@@ -196,6 +198,17 @@ tr:hover td{background:#f9fdf9}
     <div class="row"><div class="field"><label>Valor de la casa ($)</label><input id="nv-valor" type="number"></div><div class="field"><label>CPP ($)</label><input id="nv-cpp" type="number"></div></div>
     <div class="row"><div class="field"><label>Monto separacion ($)</label><input id="nv-sep" type="number"></div><div class="field"><label>Monto a abonar ($)</label><input id="nv-abonar" type="number"></div></div>
     <div class="row"><div class="field"><label>Monto abonado ($)</label><input id="nv-abonado" type="number"></div></div>
+  </div>
+  <div id="nv-calificacion" class="step-content">
+    <div class="row"><div class="field"><label>Tipo de empleo</label>
+      <select id="nv-empleo" onchange="actualizarDocsEmpleoNV()">
+        <option value="">-- Selecciona --</option>
+        <option value="Asalariado">Asalariado</option>
+        <option value="Independiente">Independiente</option>
+        <option value="Jubilado">Jubilado</option>
+      </select>
+    </div></div>
+    <div id="nv-docs-container" style="margin-top:8px"></div>
   </div>
   <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
     <button class="btn" onclick="closeModal('nueva-venta')">Cancelar</button>
@@ -233,6 +246,52 @@ tr:hover td{background:#f9fdf9}
 </div>
 </div>
 
+<div class="overlay" id="modal-nuevo-prospecto">
+<div class="modal">
+  <div class="modal-hd">Nuevo prospecto <button class="btn btn-sm" onclick="closeModal('nuevo-prospecto')">X</button></div>
+  <div class="row"><div class="field"><label>Nombre completo</label><input id="np-nombre" placeholder="Nombre"></div></div>
+  <div class="row"><div class="field"><label>Telefono (WhatsApp)</label><input id="np-tel" placeholder="+507 6000-0000"></div><div class="field"><label>Correo</label><input id="np-email" type="email" placeholder="correo@ejemplo.com"></div></div>
+  <div class="row"><div class="field"><label>Modelo de interes</label><select id="np-modelo"><option value="">Sin definir</option><option>Elizabeth</option><option>Aurora</option><option>Malena</option></select></div><div class="field"><label>Estado</label><select id="np-estado"><option value="Interesado">Interesado</option><option value="Seguimiento">En seguimiento</option><option value="Separo">Separo</option><option value="Perdido">Perdido</option></select></div></div>
+  <div class="row"><div class="field"><label>Tipo de empleo</label><select id="np-empleo"><option value="">Sin definir</option><option>Asalariado</option><option>Independiente</option><option>Jubilado</option></select></div><div class="field"><label>Fuente</label><select id="np-fuente"><option value="">Sin definir</option><option>Facebook</option><option>Instagram</option><option>Referido</option><option>Visita directa</option><option>WhatsApp</option><option>Otro</option></select></div></div>
+  <div class="row"><div class="field"><label>Nota inicial</label><textarea id="np-nota" placeholder="Comentarios sobre el prospecto..."></textarea></div></div>
+  <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+    <button class="btn" onclick="closeModal('nuevo-prospecto')">Cancelar</button>
+    <button class="btn btn-primary" onclick="guardarProspecto()">Guardar prospecto</button>
+  </div>
+</div>
+</div>
+
+<div class="overlay" id="modal-editar-prospecto">
+<div class="modal">
+  <div class="modal-hd">Editar prospecto — <span id="ep-titulo"></span> <button class="btn btn-sm" onclick="closeModal('editar-prospecto')">X</button></div>
+  <div class="step-tabs">
+    <button class="step-tab active" onclick="stepTab('ep','info',this)">Info</button>
+    <button class="step-tab" onclick="stepTab('ep','notas',this)">Historial</button>
+    <button class="step-tab" onclick="stepTab('ep','wa',this)">WhatsApp</button>
+  </div>
+  <div id="ep-info" class="step-content active">
+    <div class="row"><div class="field"><label>Nombre</label><input id="ep-nombre"></div></div>
+    <div class="row"><div class="field"><label>Telefono</label><input id="ep-tel"></div><div class="field"><label>Correo</label><input id="ep-email"></div></div>
+    <div class="row"><div class="field"><label>Modelo</label><select id="ep-modelo"><option value="">Sin definir</option><option>Elizabeth</option><option>Aurora</option><option>Malena</option></select></div><div class="field"><label>Estado</label><select id="ep-estado"><option value="Interesado">Interesado</option><option value="Seguimiento">En seguimiento</option><option value="Separo">Separo</option><option value="Perdido">Perdido</option></select></div></div>
+    <div class="row"><div class="field"><label>Tipo de empleo</label><select id="ep-empleo"><option value="">Sin definir</option><option>Asalariado</option><option>Independiente</option><option>Jubilado</option></select></div><div class="field"><label>Fuente</label><select id="ep-fuente"><option value="">Sin definir</option><option>Facebook</option><option>Instagram</option><option>Referido</option><option>Visita directa</option><option>WhatsApp</option><option>Otro</option></select></div></div>
+  </div>
+  <div id="ep-notas" class="step-content">
+    <div id="ep-historial" style="margin-bottom:10px;max-height:200px;overflow-y:auto"></div>
+    <div class="row"><div class="field"><label>Nueva nota</label><textarea id="ep-nueva-nota" placeholder="Escribe una nota..."></textarea></div></div>
+  </div>
+  <div id="ep-wa" class="step-content">
+    <p style="font-size:11px;color:var(--color-text-secondary);margin-bottom:10px">Selecciona una plantilla o escribe tu mensaje:</p>
+    <div id="ep-templates"></div>
+    <div class="row"><div class="field"><label>Mensaje personalizado</label><textarea id="ep-wa-msg" style="min-height:80px"></textarea></div></div>
+    <button class="btn btn-primary" style="width:100%" onclick="enviarWA()">Abrir en WhatsApp</button>
+  </div>
+  <div style="display:flex;justify-content:space-between;margin-top:14px">
+    <button class="btn btn-sm btn-danger" onclick="eliminarProspecto()">Eliminar</button>
+    <div style="display:flex;gap:8px"><button class="btn" onclick="closeModal('editar-prospecto')">Cancelar</button><button class="btn btn-primary" onclick="actualizarProspecto()">Guardar</button></div>
+  </div>
+</div>
+</div>
+
 <div class="overlay" id="modal-entrega">
 <div class="modal">
   <div class="modal-hd">Hitos de entrega — <span id="me-title"></span> <button class="btn btn-sm" onclick="closeModal('entrega')">X</button></div>
@@ -252,6 +311,7 @@ tr:hover td{background:#f9fdf9}
     <button class="step-tab active" onclick="stepTab('ecl','info',this)">Cliente</button>
     <button class="step-tab" onclick="stepTab('ecl','financiero',this)">Financiero</button>
     <button class="step-tab" onclick="stepTab('ecl','casa',this)">Casa</button>
+    <button class="step-tab" onclick="stepTab('ecl','calificacion',this)">Calificacion</button>
   </div>
   <div id="ecl-info" class="step-content active">
     <div class="row"><div class="field"><label>Nombre</label><input id="ecl-nombre"></div></div>
@@ -269,6 +329,17 @@ tr:hover td{background:#f9fdf9}
   <div id="ecl-casa" class="step-content">
     <div class="row"><div class="field"><label>Modelo</label><select id="ecl-modelo"><option>Elizabeth</option><option>Aurora</option><option>Malena</option></select></div><div class="field"><label>Etapa</label><input id="ecl-etapa"></div></div>
     <div class="row"><div class="field"><label>Contratista</label><input id="ecl-cont"></div><div class="field"><label>Fondo Solidario</label><select id="ecl-fondo"><option value="Si">Si</option><option value="No">No</option></select></div></div>
+  </div>
+  <div id="ecl-calificacion" class="step-content">
+    <div class="row"><div class="field"><label>Tipo de empleo</label>
+      <select id="ecl-empleo" onchange="actualizarDocsEmpleo()">
+        <option value="">-- Selecciona --</option>
+        <option value="Asalariado">Asalariado</option>
+        <option value="Independiente">Independiente</option>
+        <option value="Jubilado">Jubilado</option>
+      </select>
+    </div></div>
+    <div id="ecl-docs-container" style="margin-top:8px"></div>
   </div>
   <div style="display:flex;justify-content:space-between;margin-top:16px">
     <button class="btn btn-sm btn-danger" onclick="eliminarCasa()">Eliminar casa</button>
@@ -335,6 +406,26 @@ tr:hover td{background:#f9fdf9}
   </table></div>
 </div>
 
+<div id="screen-crm" class="screen">
+  <div class="filter-row">
+    <input placeholder="Buscar prospecto, telefono..." id="crm-search" oninput="renderCRM()">
+    <select id="crm-estado" onchange="renderCRM()">
+      <option value="">Todos los estados</option>
+      <option value="Interesado">Interesado</option>
+      <option value="Seguimiento">En seguimiento</option>
+      <option value="Separo">Separo</option>
+      <option value="Perdido">Perdido</option>
+    </select>
+    <select id="crm-modelo" onchange="renderCRM()">
+      <option value="">Todos los modelos</option>
+      <option>Elizabeth</option><option>Aurora</option><option>Malena</option>
+    </select>
+    <button class="btn btn-primary btn-sm" onclick="openModal('nuevo-prospecto')">+ Nuevo prospecto</button>
+  </div>
+  <div class="stat-grid" id="crm-stats"></div>
+  <div id="crm-list"></div>
+</div>
+
 <div id="screen-alertas" class="screen">
   <div class="section-hd">Alertas activas</div>
   <div id="alertas-list" style="margin-top:10px"></div>
@@ -353,6 +444,19 @@ const ITEMS_DEFAULT = ["Mobilizacion inicial, Permiso de construccion y Fianzas"
 const MONTOS_DEFAULT = [3500, 225.44, 155.21, 518.97, 390.73, 145.51, 1408.02, 164.74, 658.95, 1638.28, 74.03, 751.99, 388.02, 2373.34, 63.05, 242.51, 2580.35, 398.31, 316.24, 798.96, 388.02, 1455.08, 194.01, 703.29, 405.49, 502.69, 227.97, 669.34, 950.66, 184.3, 729.48, 270.65, 1504.32, 242.51, 867.28, 290.99, 121.25, 1500, 2000];
 const HITOS_NOMBRES = ["Permiso de construccion", "Inspeccion MIVIOT", "Perm. ocupacion bomberos", "Perm. ocupacion MINSA", "Perm. ocupacion municipio", "Carta resolucion MIVIOT", "Avaluo bancario", "Escritura", "Desembolso banco", "Desembolso MIVIOT"];
 const HITO_KEYS = ['h1','h2','h3','h4','h5','h6','h7','h8','h9','h10'];
+/* CRM: run this SQL in Supabase to enable prospectos:
+CREATE TABLE IF NOT EXISTS prospectos (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  nombre text, telefono text, email text,
+  modelo text, estado text DEFAULT 'Interesado',
+  empleo text, fuente text, notas jsonb DEFAULT '[]',
+  ultimo_contacto timestamptz DEFAULT now(),
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+ALTER TABLE prospectos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all" ON prospectos FOR ALL USING (true) WITH CHECK (true);
+*/
 const SB_URL = 'https://ugvmwxgtcceyrfvyskjw.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVndm13eGd0Y2NleXJmdnlza2p3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1OTQ0NzcsImV4cCI6MjA5MTE3MDQ3N30.uKuT-9AAK3kiB-lNjbvOYkPVqFJ6TuQOF5kCCesV5Uk';
 const APP_PWD = 'PromotoraVFC228';
@@ -391,11 +495,13 @@ async function entrarConContrasena(){
 }
 
 async function cargarCasas(){
-  if(modoLocal){casas=getDemoData();renderAll();return;}
+  if(modoLocal){casas=getDemoData();prospectos=getDemoProspectos();renderAll();return;}
   try{
     var res=await sb.from('casas').select('*').order('created_at');
     if(res.error)throw res.error;
-    casas=res.data.map(dbToLocal);renderAll();
+    casas=res.data.map(dbToLocal);
+    await cargarProspectos();
+    renderAll();
   }catch(e){showToast('Error cargando datos',true);}
 }
 
@@ -714,6 +820,7 @@ function renderCasaDetail(idx){
     '<div class="card-hd">Avance de construccion — cuentas '+
     '<button class="btn btn-sm btn-primary" onclick="abrirCuenta('+idx+',null)">+ Nueva cuenta</button></div>'+
     renderCuentas(c,idx)+'</div>';
+  html+='<div class="card" style="margin-bottom:12px"><div class="card-hd">Calificacion bancaria <button class="btn btn-sm" onclick="abrirEditCliente('+idx+')">Editar</button></div>'+renderCalificacion(c,idx)+'</div>';
   html+='<div class="card"><div class="card-hd">Hitos de entrega '+
     '<button class="btn btn-sm" onclick="abrirEditEntrega('+idx+')">Editar</button></div>'+
     HITO_KEYS.map((k,i)=>'<div class="hito-row"><span class="hito-lbl">'+HITOS_NOMBRES[i]+'</span>'+hBadge(c.hitos[k])+'</div>').join('')+'</div>';
@@ -756,6 +863,9 @@ function abrirEditCliente(idx){
   document.getElementById('ecl-etapa').value=c.etapa||'';
   document.getElementById('ecl-cont').value=c.cont||'';
   document.getElementById('ecl-fondo').value=c.fondo||'No';
+  document.getElementById('ecl-empleo').value=c.empleo||'';
+  if(c.empleo) renderDocsChecklist(c.empleo, c.docsEntregados||[], 'ecl-docs-container');
+  else document.getElementById('ecl-docs-container').innerHTML='';
   stepTab('ecl','info',document.querySelector('#modal-cliente .step-tab'));
   openModal('cliente');
 }
@@ -765,6 +875,8 @@ async function guardarCliente(){
   c.carta=document.getElementById('ecl-carta').value;c.cartaFecha=document.getElementById('ecl-carta-fecha').value;c.gastos=document.getElementById('ecl-gastos').value;c.notasCliente=document.getElementById('ecl-notas').value;
   ['valor','cpp','sep','abonar','abonado'].forEach(f=>c[f]=parseFloat(document.getElementById('ecl-'+f).value)||( f==='valor'||f==='cpp'?null:0));
   c.modelo=document.getElementById('ecl-modelo').value;c.etapa=document.getElementById('ecl-etapa').value;c.cont=document.getElementById('ecl-cont').value;c.fondo=document.getElementById('ecl-fondo').value;
+  c.empleo=document.getElementById('ecl-empleo').value;
+  c.docsEntregados=getDocsEntregados('ecl-docs-container', c.empleo);
   await guardarCasa(c);closeModal('cliente');showToast('Datos actualizados');renderAll();
   if(document.getElementById('screen-casa').classList.contains('active'))renderCasaDetail(editIdx);
 }
@@ -828,6 +940,24 @@ function renderAlertas(){
     var pend=Math.max(0,(c.abonar||0)-(c.abonado||0));
     if(pend>0)items.push({color:'#ef4444',msg:c.id+' — '+(c.nombre||'sin cliente')+': abono pendiente '+fmt(pend)});
     HITO_KEYS.forEach((k,j)=>{if(c.hitos[k]==='3')items.push({color:'#94a3b8',msg:c.id+' — '+HITOS_NOMBRES[j]+': pendiente'});});
+    if(c.empleo){
+      var docsReq=DOCS_EMPLEO[c.empleo]||[];
+      var docsEnt=c.docsEntregados||[];
+      docsReq.forEach(function(doc){if(docsEnt.indexOf(doc)<0)items.push({color:'#f59e0b',msg:c.id+' — '+(c.nombre||'sin cliente')+': documento pendiente — '+doc});});
+    }
+    if(c.empleo){
+      var docsReq=DOCS_EMPLEO[c.empleo]||[];
+      var docsEnt=c.docsEntregados||[];
+      docsReq.forEach(function(doc){
+        if(docsEnt.indexOf(doc)<0) items.push({color:'#f59e0b',msg:c.id+' — '+(c.nombre||'sin cliente')+': documento pendiente — '+doc});
+      });
+    }
+  });
+  // Add CRM alerts
+  (prospectos||[]).forEach(function(p){
+    var dias=diasSinContacto(p);
+    if(dias>=5&&p.estado!=='Perdido'&&p.estado!=='Separo')
+      items.push({color:'#ef4444',msg:'CRM — '+p.nombre+': '+dias+' dias sin contacto ('+p.estado+')'});
   });
   document.getElementById('alertas-list').innerHTML=items.length===0?'<p style="color:#888;font-size:13px">Sin alertas activas.</p>':items.slice(0,50).map(a=>'<div class="alert-item"><div class="dot" style="background:'+a.color+'"></div><span>'+a.msg+'</span></div>').join('');
 }
@@ -839,12 +969,377 @@ function renderAll(){
   else if(id==='construccion')renderConst();
   else if(id==='entrega')renderEntrega();
   else if(id==='alertas')renderAlertas();
+  else if(id==='crm')renderCRM();
   else if(id==='casa'&&editIdx>=0)renderCasaDetail(editIdx);
 }
+const DOCS_EMPLEO = {
+  Asalariado: ['Talonario','Cedula','APC','Carta de trabajo','Ficha'],
+  Independiente: ['Tres declaraciones de renta','Cedula'],
+  Jubilado: ['Cedula','Ficha']
+};
+
+function renderDocsChecklist(empleo, docsEntregados, containerId) {
+  var container = document.getElementById(containerId);
+  if (!container) return;
+  if (!empleo) { container.innerHTML = ''; return; }
+  var docs = DOCS_EMPLEO[empleo] || [];
+  container.innerHTML = '<div style="font-size:11px;font-weight:600;color:#1a5c2a;margin-bottom:8px">Documentos requeridos — ' + empleo + '</div>' +
+    docs.map(function(doc) {
+      var checked = docsEntregados && docsEntregados.indexOf(doc) >= 0;
+      return '<label style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid #c8e6d0;border-radius:8px;margin-bottom:6px;cursor:pointer;background:' + (checked ? '#f0f9f2' : '#fff') + '">' +
+        '<input type="checkbox" id="doc-' + containerId + '-' + doc.replace(/ /g,'_') + '" ' + (checked ? 'checked' : '') + ' style="width:16px;height:16px;accent-color:#1a5c2a;flex-shrink:0">' +
+        '<span style="font-size:12px">' + doc + '</span>' +
+        (checked ? '<span style="margin-left:auto;font-size:10px;color:#15803d;font-weight:600">Entregado</span>' : '<span style="margin-left:auto;font-size:10px;color:#a16207;font-weight:600">Pendiente</span>') +
+      '</label>';
+    }).join('');
+}
+
+function actualizarDocsEmpleo() {
+  var empleo = document.getElementById('ecl-empleo').value;
+  var c = editIdx >= 0 ? casas[editIdx] : null;
+  var docs = c && c.docsEntregados ? c.docsEntregados : [];
+  renderDocsChecklist(empleo, docs, 'ecl-docs-container');
+}
+
+function actualizarDocsEmpleoNV() {
+  var empleo = document.getElementById('nv-empleo').value;
+  renderDocsChecklist(empleo, [], 'nv-docs-container');
+}
+
+function getDocsEntregados(containerId, empleo) {
+  if (!empleo) return [];
+  var docs = DOCS_EMPLEO[empleo] || [];
+  return docs.filter(function(doc) {
+    var el = document.getElementById('doc-' + containerId + '-' + doc.replace(/ /g,'_'));
+    return el && el.checked;
+  });
+}
+
+function renderCalificacion(c, idx) {
+  var empleo = c.empleo || '';
+  var docs = DOCS_EMPLEO[empleo] || [];
+  var entregados = c.docsEntregados || [];
+  var pendientes = docs.filter(function(d) { return entregados.indexOf(d) < 0; });
+  var pct = docs.length > 0 ? Math.round(entregados.length / docs.length * 100) : 0;
+
+  if (!empleo) return '<div style="color:#888;font-size:12px;padding:8px 0">No se ha registrado tipo de empleo.</div>';
+
+  var badge = pct === 100
+    ? '<span class="badge b-green">Completo</span>'
+    : pendientes.length > 0
+    ? '<span class="badge b-amber">' + pendientes.length + ' pendiente(s)</span>'
+    : '<span class="badge b-blue">Sin documentos</span>';
+
+  return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">' +
+    '<span style="font-size:13px;font-weight:600;color:#1a5c2a">' + empleo + '</span>' + badge +
+    '<div class="prog" style="flex:1;max-width:120px"><div class="prog-fill" style="width:' + pct + '%;background:#1a5c2a"></div></div>' +
+    '<span style="font-size:12px;font-weight:600">' + pct + '%</span>' +
+  '</div>' +
+  docs.map(function(doc) {
+    var ok = entregados.indexOf(doc) >= 0;
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid ' + (ok ? '#c8e6d0' : '#fde68a') + ';border-radius:8px;margin-bottom:6px;background:' + (ok ? '#f0f9f2' : '#fffbeb') + '">' +
+      '<div style="width:8px;height:8px;border-radius:50%;background:' + (ok ? '#15803d' : '#a16207') + ';flex-shrink:0"></div>' +
+      '<span style="font-size:12px">' + doc + '</span>' +
+      '<span style="margin-left:auto;font-size:10px;font-weight:600;color:' + (ok ? '#15803d' : '#a16207') + '">' + (ok ? 'Entregado' : 'Pendiente') + '</span>' +
+    '</div>';
+  }).join('');
+}
+
+
+// ── CRM DATA ──
+let prospectos = [];
+
+function getCRMKey(casaId) { return 'crm_' + casaId; }
+
+async function cargarProspectos() {
+  if (modoLocal) { prospectos = getDemoProspectos(); return; }
+  try {
+    var res = await sb.from('prospectos').select('*').order('created_at', {ascending:false});
+    if (res.error) {
+      // table may not exist yet
+      prospectos = [];
+      return;
+    }
+    prospectos = res.data.map(function(r) { return dbToProspecto(r); });
+  } catch(e) { prospectos = []; }
+}
+
+function dbToProspecto(r) {
+  return {
+    uuid: r.id, nombre: r.nombre||'', tel: r.telefono||'',
+    email: r.email||'', modelo: r.modelo||'', estado: r.estado||'Interesado',
+    empleo: r.empleo||'', fuente: r.fuente||'',
+    notas: r.notas||[], ultimoContacto: r.ultimo_contacto||r.created_at||''
+  };
+}
+function prospectoDB(p) {
+  return {
+    nombre: p.nombre, telefono: p.tel, email: p.email,
+    modelo: p.modelo, estado: p.estado, empleo: p.empleo,
+    fuente: p.fuente, notas: p.notas||[],
+    ultimo_contacto: p.ultimoContacto||new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+}
+
+async function guardarProspectoRemoto(p) {
+  if (modoLocal) return true;
+  try {
+    if (p.uuid) {
+      var r = await sb.from('prospectos').update(prospectoDB(p)).eq('id', p.uuid);
+      if (r.error) throw r.error;
+    } else {
+      var r2 = await sb.from('prospectos').insert(prospectoDB(p)).select().single();
+      if (r2.error) throw r2.error;
+      p.uuid = r2.data.id;
+    }
+    return true;
+  } catch(e) { showToast('Error guardando prospecto: ' + e.message, true); return false; }
+}
+
+async function borrarProspectoRemoto(uuid) {
+  if (modoLocal) return true;
+  try {
+    var r = await sb.from('prospectos').delete().eq('id', uuid);
+    if (r.error) throw r.error;
+    return true;
+  } catch(e) { showToast('Error: ' + e.message, true); return false; }
+}
+
+let editProspectoIdx = -1;
+
+const WA_TEMPLATES = [
+  { label: 'Primer contacto', msg: 'Hola [Nombre], le saluda el equipo de Altos de Coronado. Gracias por su interes en nuestros proyectos. Con gusto le cuento sobre los modelos disponibles. Cuando podemos hablar?' },
+  { label: 'Seguimiento', msg: 'Hola [Nombre], es el equipo de Altos de Coronado. Queriamos saber si tiene alguna pregunta sobre el modelo [Modelo] que le intereso. Estamos a su disposicion.' },
+  { label: 'Cita', msg: 'Hola [Nombre], le confirmamos su cita en Altos de Coronado. Por favor avisarnos si necesita cambiar el horario. Gracias.' },
+  { label: 'Documentos pendientes', msg: 'Hola [Nombre], le recordamos que tiene documentos pendientes para completar su proceso. Por favor coordinar entrega a la brevedad posible. Gracias.' },
+  { label: 'Bienvenida separacion', msg: 'Hola [Nombre], felicitaciones por separar su casa en Altos de Coronado. Proximamente le estaremos enviando los siguientes pasos del proceso. Cualquier consulta estamos aqui.' }
+];
+
+function diasSinContacto(p) {
+  if (!p.ultimoContacto) return 999;
+  var d = new Date(p.ultimoContacto);
+  if (isNaN(d)) return 999;
+  return Math.floor((Date.now() - d.getTime()) / 86400000);
+}
+
+function estadoBadge(e) {
+  if (e === 'Interesado') return '<span class="badge b-blue">Interesado</span>';
+  if (e === 'Seguimiento') return '<span class="badge b-amber">Seguimiento</span>';
+  if (e === 'Separo') return '<span class="badge b-green">Separo</span>';
+  if (e === 'Perdido') return '<span class="badge b-gray">Perdido</span>';
+  return '<span class="badge b-gray">' + (e||'—') + '</span>';
+}
+
+function renderCRMStats(d) {
+  var total = d.length;
+  var interesados = d.filter(function(p){return p.estado==='Interesado';}).length;
+  var seguimiento = d.filter(function(p){return p.estado==='Seguimiento';}).length;
+  var separaron = d.filter(function(p){return p.estado==='Separo';}).length;
+  var sinContacto = d.filter(function(p){return diasSinContacto(p)>=5 && p.estado!=='Perdido' && p.estado!=='Separo';}).length;
+  document.getElementById('crm-stats').innerHTML =
+    '<div class="stat"><div class="stat-lbl">Total prospectos</div><div class="stat-val">' + total + '</div></div>' +
+    '<div class="stat"><div class="stat-lbl">Interesados</div><div class="stat-val" style="color:#185FA5">' + interesados + '</div></div>' +
+    '<div class="stat"><div class="stat-lbl">En seguimiento</div><div class="stat-val" style="color:#854F0B">' + seguimiento + '</div></div>' +
+    '<div class="stat"><div class="stat-lbl">Separaron</div><div class="stat-val" style="color:#1a5c2a">' + separaron + '</div></div>' +
+    '<div class="stat"><div class="stat-lbl">Sin contactar +5 dias</div><div class="stat-val" style="color:#A32D2D">' + sinContacto + '</div></div>';
+}
+
+function renderCRM() {
+  var search = (document.getElementById('crm-search').value || '').toLowerCase();
+  var estado = document.getElementById('crm-estado').value;
+  var modelo = document.getElementById('crm-modelo').value;
+  var d = prospectos.filter(function(p) {
+    if (estado && p.estado !== estado) return false;
+    if (modelo && p.modelo !== modelo) return false;
+    if (search && !(p.nombre||'').toLowerCase().includes(search) && !(p.tel||'').includes(search)) return false;
+    return true;
+  });
+  renderCRMStats(prospectos);
+  if (d.length === 0) {
+    document.getElementById('crm-list').innerHTML = '<p style="color:var(--color-text-secondary);font-size:13px;padding:20px 0">No hay prospectos. Agrega uno con el boton arriba.</p>';
+    return;
+  }
+  document.getElementById('crm-list').innerHTML = d.map(function(p) {
+    var idx = prospectos.indexOf(p);
+    var dias = diasSinContacto(p);
+    var alertaColor = dias >= 5 && p.estado !== 'Perdido' && p.estado !== 'Separo' ? '#A32D2D' : '#555';
+    var alertaTxt = dias >= 5 && p.estado !== 'Perdido' && p.estado !== 'Separo' ? ' · ⚠ ' + dias + ' dias sin contacto' : dias < 999 ? ' · ' + dias + ' dia(s)' : '';
+    var initials = (p.nombre||'?').split(' ').map(function(w){return w[0]||'';}).slice(0,2).join('').toUpperCase();
+    var avatarBg = p.estado==='Separo'?'#c8e6d0':p.estado==='Perdido'?'#F1EFE8':p.estado==='Seguimiento'?'#FAEEDA':'#E6F1FB';
+    var avatarColor = p.estado==='Separo'?'#1a5c2a':p.estado==='Perdido'?'#5F5E5A':p.estado==='Seguimiento'?'#854F0B':'#185FA5';
+    var ultimaNota = p.notas && p.notas.length > 0 ? p.notas[p.notas.length-1] : null;
+    return '<div class="card">' +
+      '<div style="display:flex;align-items:flex-start;gap:12px">' +
+      '<div style="width:40px;height:40px;border-radius:50%;background:' + avatarBg + ';display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;color:' + avatarColor + ';flex-shrink:0">' + initials + '</div>' +
+      '<div style="flex:1;min-width:0">' +
+      '<div style="font-weight:600;font-size:13px;margin-bottom:2px">' + (p.nombre||'Sin nombre') + '</div>' +
+      '<div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:6px">' + (p.tel||'Sin telefono') + (p.email?' · '+p.email:'') + '<span style="color:'+alertaColor+'">' + alertaTxt + '</span></div>' +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">' +
+        estadoBadge(p.estado) +
+        (p.modelo ? '<span class="badge b-teal">'+p.modelo+'</span>' : '') +
+        (p.empleo ? '<span class="badge b-gray">'+p.empleo+'</span>' : '') +
+        (p.fuente ? '<span class="badge b-purple">'+p.fuente+'</span>' : '') +
+      '</div>' +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap">' +
+        (p.tel ? '<button class="btn" style="background:#EAF3DE;border-color:#97C459;color:#3B6D11;font-weight:500" onclick="abrirWADirecto('+idx+')">WhatsApp</button>' : '') +
+        '<button class="btn" onclick="abrirEditarProspecto('+idx+')">Ver ficha</button>' +
+        '<select style="font-size:11px;padding:4px 8px;width:auto;flex-shrink:0" onchange="cambiarEstadoRapido('+idx+',this)">' +
+          '<option value="">Cambiar estado</option>' +
+          '<option value="Interesado">Interesado</option>' +
+          '<option value="Seguimiento">En seguimiento</option>' +
+          '<option value="Separo">Separo</option>' +
+          '<option value="Perdido">Perdido</option>' +
+        '</select>' +
+      '</div>' +
+      (ultimaNota ? '<div style="font-size:11px;color:var(--color-text-secondary);background:var(--color-background-secondary);border-radius:7px;padding:7px 10px;margin-top:8px;border-left:3px solid #c8e6d0">' + ultimaNota.texto + '<span style="color:var(--color-text-tertiary);margin-left:6px">' + (ultimaNota.fecha||'') + '</span></div>' : '') +
+      '</div></div></div>';
+  }).join('');
+}
+
+async function guardarProspecto() {
+  var nombre = document.getElementById('np-nombre').value.trim();
+  if (!nombre) { alert('Ingresa el nombre del prospecto'); return; }
+  var p = {
+    nombre: nombre,
+    tel: document.getElementById('np-tel').value,
+    email: document.getElementById('np-email').value,
+    modelo: document.getElementById('np-modelo').value,
+    estado: document.getElementById('np-estado').value,
+    empleo: document.getElementById('np-empleo').value,
+    fuente: document.getElementById('np-fuente').value,
+    notas: [],
+    ultimoContacto: new Date().toISOString()
+  };
+  var notaTxt = document.getElementById('np-nota').value.trim();
+  if (notaTxt) p.notas.push({ texto: notaTxt, fecha: new Date().toLocaleDateString('es-PA') });
+  var ok = await guardarProspectoRemoto(p);
+  if (ok) {
+    prospectos.unshift(p);
+    closeModal('nuevo-prospecto');
+    ['np-nombre','np-tel','np-email','np-nota'].forEach(function(id){document.getElementById(id).value='';});
+    showToast('Prospecto guardado');
+    renderCRM();
+  }
+}
+
+function abrirEditarProspecto(idx) {
+  editProspectoIdx = idx;
+  var p = prospectos[idx];
+  document.getElementById('ep-titulo').textContent = p.nombre;
+  document.getElementById('ep-nombre').value = p.nombre || '';
+  document.getElementById('ep-tel').value = p.tel || '';
+  document.getElementById('ep-email').value = p.email || '';
+  document.getElementById('ep-modelo').value = p.modelo || '';
+  document.getElementById('ep-estado').value = p.estado || 'Interesado';
+  document.getElementById('ep-empleo').value = p.empleo || '';
+  document.getElementById('ep-fuente').value = p.fuente || '';
+  // Historial
+  var notas = p.notas || [];
+  document.getElementById('ep-historial').innerHTML = notas.length === 0
+    ? '<p style="color:var(--color-text-secondary);font-size:12px">Sin notas aun.</p>'
+    : notas.slice().reverse().map(function(n) {
+        return '<div style="padding:8px 10px;border:0.5px solid var(--color-border-tertiary);border-radius:8px;margin-bottom:6px;font-size:12px">' +
+          '<div style="color:var(--color-text-secondary);font-size:10px;margin-bottom:3px">' + (n.fecha||'') + '</div>' + n.texto + '</div>';
+      }).join('');
+  document.getElementById('ep-nueva-nota').value = '';
+  // WA templates
+  document.getElementById('ep-templates').innerHTML = WA_TEMPLATES.map(function(t, i) {
+    var msg = t.msg.replace('[Nombre]', p.nombre||'[Nombre]').replace('[Modelo]', p.modelo||'[Modelo]');
+    return '<div style="background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:8px;padding:9px 12px;margin-bottom:7px;cursor:pointer" onclick="usarTemplate('+i+')">' +
+      '<div style="font-size:10px;font-weight:600;color:#1a5c2a;margin-bottom:3px">' + t.label + '</div>' +
+      '<div style="font-size:11px;color:var(--color-text-secondary)">' + msg + '</div>' +
+    '</div>';
+  }).join('');
+  document.getElementById('ep-wa-msg').value = '';
+  stepTab('ep', 'info', document.querySelector('#modal-editar-prospecto .step-tab'));
+  openModal('editar-prospecto');
+}
+
+function usarTemplate(i) {
+  var p = prospectos[editProspectoIdx];
+  var msg = WA_TEMPLATES[i].msg
+    .replace('[Nombre]', p.nombre||'[Nombre]')
+    .replace('[Modelo]', p.modelo||'[Modelo]');
+  document.getElementById('ep-wa-msg').value = msg;
+}
+
+function enviarWA() {
+  var p = prospectos[editProspectoIdx];
+  var tel = (p.tel || '').replace(/\D/g, '');
+  var msg = document.getElementById('ep-wa-msg').value.trim();
+  if (!tel) { alert('Este prospecto no tiene telefono registrado.'); return; }
+  if (!msg) { alert('Escribe o selecciona un mensaje.'); return; }
+  var url = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(msg);
+  openLink(url);
+}
+
+function abrirWADirecto(idx) {
+  var p = prospectos[idx];
+  var tel = (p.tel || '').replace(/\D/g, '');
+  if (!tel) { showToast('Sin numero de telefono', true); return; }
+  var msg = 'Hola ' + (p.nombre||'') + ', le saluda el equipo de Altos de Coronado. Como le podemos ayudar?';
+  var url = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(msg);
+  openLink(url);
+}
+
+async function actualizarProspecto() {
+  var p = prospectos[editProspectoIdx];
+  p.nombre = document.getElementById('ep-nombre').value;
+  p.tel = document.getElementById('ep-tel').value;
+  p.email = document.getElementById('ep-email').value;
+  p.modelo = document.getElementById('ep-modelo').value;
+  p.estado = document.getElementById('ep-estado').value;
+  p.empleo = document.getElementById('ep-empleo').value;
+  p.fuente = document.getElementById('ep-fuente').value;
+  var nuevaNota = document.getElementById('ep-nueva-nota').value.trim();
+  if (nuevaNota) {
+    if (!p.notas) p.notas = [];
+    p.notas.push({ texto: nuevaNota, fecha: new Date().toLocaleDateString('es-PA') });
+    p.ultimoContacto = new Date().toISOString();
+  }
+  var ok = await guardarProspectoRemoto(p);
+  if (ok) { closeModal('editar-prospecto'); showToast('Prospecto actualizado'); renderCRM(); }
+}
+
+async function cambiarEstadoRapido(idx, sel) {
+  var nuevoEstado = sel.value;
+  if (!nuevoEstado) return;
+  sel.value = '';
+  var p = prospectos[idx];
+  p.estado = nuevoEstado;
+  p.ultimoContacto = new Date().toISOString();
+  await guardarProspectoRemoto(p);
+  showToast('Estado actualizado a ' + nuevoEstado);
+  renderCRM();
+}
+
+async function eliminarProspecto() {
+  var p = prospectos[editProspectoIdx];
+  if (!confirm('Eliminar prospecto ' + p.nombre + '?')) return;
+  var ok = await borrarProspectoRemoto(p.uuid);
+  if (ok || modoLocal) {
+    prospectos.splice(editProspectoIdx, 1);
+    closeModal('editar-prospecto');
+    showToast('Prospecto eliminado');
+    renderCRM();
+  }
+}
+
+function getDemoProspectos() {
+  return [
+    { nombre:'Maria Rodriguez', tel:'50767891234', email:'maria@gmail.com', modelo:'Malena', estado:'Seguimiento', empleo:'Asalariado', fuente:'Facebook', notas:[{texto:'Interesada en casa Malena 3 cuartos con Fondo Solidario',fecha:'08/04/2026'}], ultimoContacto: new Date(Date.now()-2*86400000).toISOString() },
+    { nombre:'Jose Ortega', tel:'50765000011', email:'', modelo:'Elizabeth', estado:'Interesado', empleo:'Independiente', fuente:'Instagram', notas:[{texto:'Consulto por Casa Elizabeth Etapa 1',fecha:'02/04/2026'}], ultimoContacto: new Date(Date.now()-6*86400000).toISOString() },
+    { nombre:'Luisa Morales', tel:'50762223344', email:'luisa@hotmail.com', modelo:'Malena', estado:'Separo', empleo:'Jubilado', fuente:'Referido', notas:[{texto:'Separo Casa 8 Malena. Cedula entregada, ficha pendiente.',fecha:'07/04/2026'}], ultimoContacto: new Date().toISOString() },
+    { nombre:'Carlos Vega', tel:'50766001122', email:'', modelo:'Aurora', estado:'Interesado', empleo:'Asalariado', fuente:'Visita directa', notas:[], ultimoContacto: new Date(Date.now()-1*86400000).toISOString() },
+    { nombre:'Ana Perez', tel:'50764445566', email:'ana@gmail.com', modelo:'Elizabeth', estado:'Perdido', empleo:'', fuente:'WhatsApp', notas:[{texto:'Ya no le interesa, adquirio otra propiedad',fecha:'01/04/2026'}], ultimoContacto: new Date(Date.now()-10*86400000).toISOString() }
+  ];
+}
+
 function getDemoData(){
   var baseItems=ITEMS_DEFAULT.map((d,i)=>({desc:d,monto:MONTOS_DEFAULT[i]}));
   return [
-    {id:'Casa 3',modelo:'Elizabeth',etapa:'1',cont:'Grupo V & C',inicio:'2022-10-03',avReal:0.431,avPlan:0.5,monto:30000,pagoReal:12931,valor:62500,cpp:52499,sep:40,abonar:0,abonado:0,fondo:'Si',nombre:'Carlos Ejemplo',cedula:'8-111-1111',tel:'6111-1111',email:'carlos@ejemplo.com',banco:'Banco Nacional',carta:'Si',cartaFecha:'',gastos:'Si',notasCliente:'',notasEntrega:'',hitos:{h1:'1',h2:'1',h3:'1',h4:'1',h5:'1',h6:'3',h7:'3',h8:'3',h9:'3',h10:'3'},cuentas:[
+    {id:'Casa 3',modelo:'Elizabeth',etapa:'1',cont:'Grupo V & C',inicio:'2022-10-03',avReal:0.431,avPlan:0.5,monto:30000,pagoReal:12931,valor:62500,cpp:52499,sep:40,abonar:0,abonado:0,fondo:'Si',nombre:'Carlos Ejemplo',cedula:'8-111-1111',tel:'6111-1111',email:'carlos@ejemplo.com',banco:'Banco Nacional',carta:'Si',cartaFecha:'',gastos:'Si',notasCliente:'',notasEntrega:'',empleo:'Asalariado',docsEntregados:['Cedula','Carta de trabajo'],hitos:{h1:'1',h2:'1',h3:'1',h4:'1',h5:'1',h6:'3',h7:'3',h8:'3',h9:'3',h10:'3'},cuentas:[
       {num:1,fecha:'2022-10-25',desde:'2022-10-03',hasta:'2022-10-30',items:baseItems,periodo:[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],acumulado:[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],totalPeriodo:3500,totalAcum:3500,pctEjecutado:0.1167},
       {num:2,fecha:'2022-11-15',desde:'2022-10-30',hasta:'2022-11-30',periodo:[0,1,1,1,1,1,0.9,0.8,0.8,0.85,1,0.9,0.9,0,0,0,0.9,0,0,0.75,0,0.45,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],acumulado:[1,1,1,1,1,1,0.9,0.8,0.8,0.85,1,0.9,0.9,0,0,0,0.9,0,0,0.75,0,0.45,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],totalPeriodo:9431,totalAcum:12931,pctEjecutado:0.431}
     ]},
