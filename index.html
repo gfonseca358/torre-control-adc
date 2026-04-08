@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" style="scroll-behavior:smooth">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;color:#1a1a1a;background:#f0f9f2}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;color:#1a1a1a;background:#f0f9f2;-webkit-tap-highlight-color:transparent}
 .topbar{display:flex;align-items:center;gap:10px;padding:10px 20px;background:#1a5c2a;border-bottom:1px solid #134820;flex-wrap:wrap;position:sticky;top:0;z-index:100}
 .nav{display:flex;gap:0;padding:0 20px;background:#f0f9f2;border-bottom:2px solid #2d7a3a;overflow-x:auto}
 .nav-btn{padding:10px 16px;font-size:12px;font-weight:500;cursor:pointer;border:none;border-bottom:2px solid transparent;background:none;color:#2d7a3a;white-space:nowrap;font-family:inherit}
@@ -22,7 +22,7 @@ label{font-size:11px;color:#555;display:block;margin-bottom:3px}
 .field{flex:1;min-width:100px}
 .row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 .btn{padding:7px 14px;font-size:12px;border:1px solid #c8e6d0;border-radius:8px;background:#fff;color:#1a1a1a;cursor:pointer;font-family:inherit;white-space:nowrap}
-.btn:hover{background:#f0f9f2}
+.btn:hover{background:#f0f9f2}.btn:active{transform:scale(0.97);opacity:0.9}
 .btn-primary{background:#1a5c2a;color:#fff;border-color:#1a5c2a}
 .btn-primary:hover{background:#2d7a3a}
 .btn-sm{padding:4px 10px;font-size:11px}
@@ -77,6 +77,62 @@ tr:hover td{background:#f9fdf9}
 .ctbl .num{text-align:right;font-variant-numeric:tabular-nums}
 .ctbl .total-row td{background:#f0f9f2;font-weight:700;border-top:2px solid #2d7a3a;color:#1a5c2a}
 .pct-hi{color:#15803d;font-weight:600}.pct-mid{color:#a16207;font-weight:600}.pct-zero{color:#aaa}.pct-over{color:#dc2626;font-weight:700;background:#fee2e2}
+
+/* ── RESPONSIVE MOBILE ── */
+@media(max-width:768px){
+  .content{padding:12px}
+  .topbar{padding:8px 12px}
+  .topbar h1-equiv{font-size:13px}
+  .nav{padding:0 8px}
+  .nav-btn{padding:8px 10px;font-size:11px}
+  /* Stack 2-col grids to 1 col */
+  div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr !important}
+  /* Stat grid smaller */
+  .stat-grid{grid-template-columns:repeat(2,1fr) !important}
+  .stat-val{font-size:18px}
+  /* Cards padding */
+  .card{padding:12px}
+  /* Tables: allow horizontal scroll, dont clip */
+  .tbl-wrap{border-radius:8px}
+  table{table-layout:auto !important}
+  th,td{padding:7px 8px;font-size:11px}
+  /* Modals full width */
+  .overlay{padding:8px}
+  .modal{padding:14px;border-radius:12px;max-width:100% !important}
+  .modal-hd{font-size:13px}
+  /* Forms */
+  .row{gap:8px}
+  .field{min-width:100%;flex:unset}
+  input,select,textarea{font-size:13px;padding:9px 10px}
+  /* Buttons bigger touch targets */
+  .btn{padding:9px 16px;font-size:12px}
+  .btn-sm{padding:6px 12px;font-size:11px}
+  /* Back button */
+  .back-btn{font-size:13px;padding:4px 0;margin-bottom:10px}
+  /* Casa detail info-grid 1 col on small */
+  .info-grid{grid-template-columns:1fr !important}
+  /* Filter row stack */
+  .filter-row{gap:6px}
+  .filter-row input,.filter-row select{max-width:100% !important;min-width:0 !important}
+  /* Pill tabs wrap nicely */
+  .pill-tabs{gap:6px}
+  .pill{padding:6px 12px;font-size:11px}
+  /* Cuenta tabs */
+  .cuenta-tab{padding:5px 10px;font-size:11px}
+  /* Alert items */
+  .alert-item{padding:8px 10px;font-size:11px}
+  /* Step tabs */
+  .step-tab{padding:7px 10px;font-size:11px}
+  /* Dashboard table hide cedula/banco on mobile */
+  .mobile-hide{display:none}
+  /* Topbar wrap */
+  .topbar{gap:8px}
+}
+@media(max-width:480px){
+  .stat-grid{grid-template-columns:repeat(2,1fr) !important}
+  .nav-btn{padding:8px 8px;font-size:10px}
+  .stat-val{font-size:16px}
+}
 </style>
 </head>
 <body>
@@ -103,7 +159,7 @@ tr:hover td{background:#f9fdf9}
     <div style="font-size:11px;color:#a8d5b5" id="hoy"></div>
   </div>
   <span class="conn-status" id="conn-status" style="margin-left:auto"></span>
-  <button style="padding:7px 14px;font-size:12px;border:1px solid #a8d5b5;border-radius:8px;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:inherit" onclick="openModal('nueva-venta')">+ Nueva venta</button>
+  <button style="padding:8px 14px;font-size:12px;border:1px solid #a8d5b5;border-radius:8px;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-family:inherit;white-space:nowrap" onclick="openModal('nueva-venta')">+ Nueva venta</button>
 </div>
 <div class="nav">
   <button class="nav-btn active" data-id="dashboard" onclick="goTo('dashboard',this)">Dashboard</button>
@@ -740,7 +796,7 @@ function renderDash(){
   }).join('');
   document.getElementById('dash-tbl').innerHTML=d.map(c=>{
     var idx=casas.indexOf(c),p=pct(c.avReal),hC=HITO_KEYS.filter(k=>c.hitos[k]==='1').length;
-    return '<tr><td style="font-weight:600">'+c.id+'</td><td>'+mBadge(c.modelo)+'</td><td>'+(c.nombre||'<span style="color:#888">Sin cliente</span>')+'</td><td>'+cartaBadge(c.carta)+'</td><td><div style="display:flex;align-items:center;gap:5px"><div class="prog" style="width:50px"><div class="prog-fill" style="width:'+p+'%;background:'+(p>=100?'#1a5c2a':'#2d7a3a')+'"></div></div><span style="font-size:11px">'+p+'%</span></div></td><td>'+hC+'/'+HITO_KEYS.length+'</td><td><button class="btn btn-sm" onclick="verCasa('+idx+')">Ver</button></td></tr>';
+    return '<tr><td style="font-weight:600">'+c.id+'</td><td class="mobile-hide">'+mBadge(c.modelo)+'</td><td>'+(c.nombre||'<span style="color:#888">Sin cliente</span>')+'</td><td class="mobile-hide">'+cartaBadge(c.carta)+'</td><td><div style="display:flex;align-items:center;gap:5px"><div class="prog" style="width:50px"><div class="prog-fill" style="width:'+p+'%;background:'+(p>=100?'#1a5c2a':'#2d7a3a')+'"></div></div><span style="font-size:11px">'+p+'%</span></div></td><td>'+hC+'/'+HITO_KEYS.length+'</td><td><button class="btn btn-sm" onclick="verCasa('+idx+')">Ver</button></td></tr>';
   }).join('');
 }
 function renderVentas(){
