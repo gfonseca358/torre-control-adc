@@ -426,7 +426,7 @@ window.addEventListener('popstate',function(){
   </div>
   <div class="tbl-wrap"><table>
     <colgroup><col style="width:80px"><col style="width:80px"><col style="width:105px"><col style="width:105px"><col style="width:100px"><col style="width:100px"><col style="width:100px"><col style="width:100px"><col style="width:75px"></colgroup>
-    <thead><tr><th>Casa</th><th>Modelo</th><th>Perm. constr.</th><th>Insp. MIVIOT</th><th>Bomberos</th><th>MINSA</th><th>Municipio</th><th>Desembolso</th><th>Accion</th></tr></thead>
+    <thead><tr><th>Casa</th><th>Modelo</th><th colspan="6">Hitos pendientes / en proceso</th><th>Accion</th></tr></thead>
     <tbody id="tbody-ent"></tbody>
   </table></div>
 </div>
@@ -452,7 +452,13 @@ window.addEventListener('popstate',function(){
 </div>
 
 <div id="screen-alertas" class="screen">
-  <div class="section-hd">Alertas activas</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+    <div class="section-hd" style="margin:0">Alertas activas</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-sm" onclick="habilitarNotifPush()" id="btn-notif">🔔 Activar notificaciones</button>
+      <button class="btn btn-sm btn-primary" onclick="enviarResumenSemanal()">📧 Enviar resumen semanal</button>
+    </div>
+  </div>
   <div id="alertas-list" style="margin-top:10px"></div>
 </div>
 
@@ -467,8 +473,9 @@ window.addEventListener('popstate',function(){
 
 const ITEMS_DEFAULT = ["Mobilizacion inicial, Permiso de construccion y Fianzas", "Bater y marcacion", "Excavacion", "Cimiento corrido y zapata aislada", "Bloques de 6 rellenos para fundaciones", "Relleno compacto", "Piso Rustico", "Columnas estructurales", "Columnas de amarre", "Bloques de 4", "Bloques de 6", "Vigas de Amarre", "Estructura de amarre (REP)", "Repello liso", "Alfeizer", "Mochetas", "Estructura y cubierta de techo", "Acera perimetral de 60 cm", "Huellas para carro y peat\u00f3n", "Plomeria", "Suministro e instalacion de artefactos", "Electricidad", "Suministro e instalacion de lamparas", "Ventanas", "Puertas de metal entrada principal y trasera", "Puertas internas Plywood o Placarol", "Puerta de Hierro en cocina", "Mueble de cocina MDF con sobre de granito", "Closets de MDF", "Correccion de defectos y fisuras pre pintura", "Sellado y Pintura", "Azulejos de pared (B/.8.5/m2)", "Baldosa de piso (B/.9.00/m2)", "Tinaco y tendedero", "Cielo raso suspendido", "Limpieza durante construccion", "Limpieza de entrega de casa", "Permiso de ocupacion e inspeccion provisional", "Entrega final"];
 const MONTOS_DEFAULT = [3500, 225.44, 155.21, 518.97, 390.73, 145.51, 1408.02, 164.74, 658.95, 1638.28, 74.03, 751.99, 388.02, 2373.34, 63.05, 242.51, 2580.35, 398.31, 316.24, 798.96, 388.02, 1455.08, 194.01, 703.29, 405.49, 502.69, 227.97, 669.34, 950.66, 184.3, 729.48, 270.65, 1504.32, 242.51, 867.28, 290.99, 121.25, 1500, 2000];
-const HITOS_NOMBRES = ["Permiso de construccion", "Inspeccion MIVIOT", "Perm. ocupacion bomberos", "Perm. ocupacion MINSA", "Perm. ocupacion municipio", "Carta resolucion MIVIOT", "Avaluo bancario", "Escritura", "Desembolso banco", "Desembolso MIVIOT"];
-const HITO_KEYS = ['h1','h2','h3','h4','h5','h6','h7','h8','h9','h10'];
+const HITOS_NOMBRES = ["Permiso de construccion", "Perm. ocupacion bomberos", "Perm. ocupacion MINSA", "Perm. ocupacion municipio", "Recopilacion documentacion cliente", "Avaluo bancario", "Paz y salvo", "Minuta de segregacion", "Minuta de cancelacion", "Pago de enajenacion", "Firma escritura promotora", "Firma escritura cliente", "Desembolso banco"];
+const HITO_KEYS = ['h1','h2','h3','h4','h5','h6','h7','h8','h9','h10','h11','h12','h13'];
+const HITO_DIAS = [0, 20, 25, 10, 15, 20, 30, 30, 35, 40, 55, 60, 75];
 /* CRM: run this SQL in Supabase to enable prospectos:
 CREATE TABLE IF NOT EXISTS prospectos (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -616,8 +623,31 @@ async function registrarVenta(){
   var btn=document.getElementById('btn-registrar');btn.disabled=true;btn.textContent='Guardando...';
   var c={id,modelo:document.getElementById('nv-modelo').value,etapa:document.getElementById('nv-etapa').value,cont:document.getElementById('nv-cont').value,inicio:document.getElementById('nv-inicio').value,avReal:0,avPlan:0,monto:parseFloat(document.getElementById('nv-monto-proy').value)||null,pagoReal:null,valor:parseFloat(document.getElementById('nv-valor').value)||null,cpp:parseFloat(document.getElementById('nv-cpp').value)||null,sep:parseFloat(document.getElementById('nv-sep').value)||0,abonar:parseFloat(document.getElementById('nv-abonar').value)||0,abonado:parseFloat(document.getElementById('nv-abonado').value)||0,fondo:document.getElementById('nv-fondo').value,nombre:document.getElementById('nv-nombre').value,cedula:document.getElementById('nv-cedula').value,tel:document.getElementById('nv-tel').value,email:document.getElementById('nv-email').value,banco:document.getElementById('nv-banco').value,carta:document.getElementById('nv-carta').value,cartaFecha:document.getElementById('nv-carta-fecha').value,gastos:document.getElementById('nv-gastos').value,notasCliente:document.getElementById('nv-notas').value,notasEntrega:'',hitos:{h1:'3',h2:'3',h3:'3',h4:'3',h5:'3',h6:'3',h7:'3',h8:'3',h9:'3',h10:'3'},cuentas:[]};
   var ok=await guardarCasa(c);
-  if(ok){casas.push(c);closeModal('nueva-venta');showToast('Casa '+id+' registrada');renderAll();}
+  if(ok){
+    casas.push(c);
+    closeModal('nueva-venta');
+    showToast('Casa '+id+' registrada');
+    renderAll();
+    // Enviar notificacion por email en segundo plano
+    notificarNuevaVenta(c);
+  }
   btn.disabled=false;btn.textContent='Registrar venta';
+}
+
+async function notificarNuevaVenta(c){
+  try{
+    await fetch(SB_URL+'/functions/v1/nueva-venta',{
+      method:'POST',
+      headers:{
+        'Authorization':'Bearer '+SB_KEY,
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify({casa:c})
+    });
+  }catch(e){
+    // Silencioso - no interrumpe el flujo si falla el correo
+    console.log('Email notif fail:',e);
+  }
 }
 
 function getItems(c){
@@ -1006,25 +1036,43 @@ function renderEntrega(){
     if(estado==='completo'&&HITO_KEYS.some(k=>c.hitos[k]!=='1'))return false;
     return true;
   });
-  document.getElementById('tbody-ent').innerHTML=d.map(c=>{var idx=casas.indexOf(c);return '<tr><td style="font-weight:600">'+c.id+'</td><td>'+mBadge(c.modelo)+'</td>'+['h1','h2','h3','h4','h5','h6'].map(k=>'<td>'+hBadge(c.hitos[k])+'</td>').join('')+'<td><button class="btn btn-sm" onclick="abrirEditEntrega('+idx+')">Editar</button></td></tr>';}).join('');
+  // Mostrar solo hitos pendientes o en proceso (ocultar los completos)
+  document.getElementById('tbody-ent').innerHTML=d.map(c=>{
+    var idx=casas.indexOf(c);
+    var pendientes=HITO_KEYS.map((k,i)=>({k:k,i:i,estado:c.hitos[k]})).filter(h=>h.estado==='2'||h.estado==='3');
+    var hitoCells=pendientes.slice(0,6).map(h=>'<td style="font-size:10px">'+HITOS_NOMBRES[h.i]+' '+hBadge(h.estado)+'</td>').join('');
+    while(pendientes.length<6&&hitoCells.split('<td').length<=6){hitoCells+='<td></td>';}
+    var resumen=pendientes.length>6?' +'+(pendientes.length-6)+' más':'';
+    return '<tr><td style="font-weight:600">'+c.id+'</td><td>'+mBadge(c.modelo)+'</td><td colspan="6" style="font-size:11px;color:#555">'+pendientes.length+' hito(s) pendiente(s)/en proceso'+resumen+'</td><td><button class="btn btn-sm" onclick="abrirEditEntrega('+idx+')">Ver</button></td></tr>';
+  }).join('');
 }
 function renderAlertas(){
   var items=[];
+  var hoy=new Date();
+
+  // Tiempos esperados por cuenta de construccion (% y dias)
+  var CUENTAS_ESPERADAS=[
+    {num:1, pct:15, dias:18, nombre:'Cuenta 1: Permisos + movilizacion'},
+    {num:2, pct:40, dias:48, nombre:'Cuenta 2: Fundaciones + estructura'},
+    {num:3, pct:70, dias:84, nombre:'Cuenta 3: Techo + acabados gruesos'},
+    {num:4, pct:90, dias:108, nombre:'Cuenta 4: Acabados finos + instalaciones'},
+    {num:5, pct:100, dias:120, nombre:'Cuenta 5: Entrega fisica'}
+  ];
+
   casas.forEach(c=>{
-    if(!c.nombre)items.push({color:'#94a3b8',msg:c.id+' ('+c.modelo+') — sin cliente asignado'});
+    // Ignorar casas completamente entregadas (todos los hitos = 1)
+    var todosHitosOk=c.hitos&&HITO_KEYS.every(k=>c.hitos[k]==='1');
+    if(todosHitosOk)return;
+
+    // Saltarse casas sin construccion iniciada para las alertas de obra/entrega
+    var permisoIniciado=c.hitos&&(c.hitos.h1==='1'||c.hitos.h1==='2');
+
+    // Alertas de cliente/financieras (estas aplican siempre que tengan cliente)
     if(c.nombre&&c.carta==='No')items.push({color:'#f59e0b',msg:c.id+' — '+c.nombre+': sin carta promesa'});
     if(c.nombre&&c.carta==='En proceso')items.push({color:'#3b82f6',msg:c.id+' — '+c.nombre+': carta en proceso'});
     var pend=Math.max(0,(c.abonar||0)-(c.abonado||0));
     if(pend>0)items.push({color:'#ef4444',msg:c.id+' — '+(c.nombre||'sin cliente')+': abono pendiente '+fmt(pend)});
-    var hasCon=c.cuentas&&c.cuentas.length>0;
-    if(hasCon){
-      HITO_KEYS.forEach((k,j)=>{if(c.hitos[k]==='3')items.push({color:'#94a3b8',msg:c.id+' — '+HITOS_NOMBRES[j]+': pendiente'});});
-    }
-    if(c.empleo){
-      var docsReq=DOCS_EMPLEO[c.empleo]||[];
-      var docsEnt=c.docsEntregados||[];
-      docsReq.forEach(function(doc){if(docsEnt.indexOf(doc)<0)items.push({color:'#f59e0b',msg:c.id+' — '+(c.nombre||'sin cliente')+': documento pendiente — '+doc});});
-    }
+
     if(c.empleo){
       var docsReq=DOCS_EMPLEO[c.empleo]||[];
       var docsEnt=c.docsEntregados||[];
@@ -1032,7 +1080,83 @@ function renderAlertas(){
         if(docsEnt.indexOf(doc)<0) items.push({color:'#f59e0b',msg:c.id+' — '+(c.nombre||'sin cliente')+': documento pendiente — '+doc});
       });
     }
+
+    // ALERTAS DE CONSTRUCCION (por cuentas)
+    if(permisoIniciado && c.inicio){
+      var inicioD=new Date(c.inicio);
+      if(!isNaN(inicioD)){
+        var diasTranscurridos=Math.floor((hoy-inicioD)/(1000*60*60*24));
+        var numCuentas=(c.cuentas||[]).length;
+        var pctActual=(c.avReal||0)*100;
+
+        // Encontrar la cuenta que deberia estar alcanzada segun dias transcurridos
+        var cuentaEsperada=CUENTAS_ESPERADAS[0];
+        for(var i=0;i<CUENTAS_ESPERADAS.length;i++){
+          if(diasTranscurridos>=CUENTAS_ESPERADAS[i].dias) cuentaEsperada=CUENTAS_ESPERADAS[i];
+        }
+
+        // Si ya deberia haber terminado y no ha terminado
+        if(diasTranscurridos>120 && pctActual<100){
+          items.push({color:'#dc2626',msg:'🔴 '+c.id+' — CONSTRUCCION ATRASADA: '+diasTranscurridos+' dias (esperado 120), avance '+Math.round(pctActual)+'%'});
+        }
+        // Si deberia estar en cuenta X y esta por debajo
+        else if(numCuentas < cuentaEsperada.num){
+          var atraso=diasTranscurridos-CUENTAS_ESPERADAS[Math.max(0,numCuentas-1)].dias;
+          if(atraso>0){
+            items.push({color:'#f59e0b',msg:'🟡 '+c.id+' — Construccion atrasada: esperado '+cuentaEsperada.nombre+', actual Cuenta '+numCuentas+' ('+diasTranscurridos+' dias)'});
+          }
+        }
+        // Proximo a vencer
+        else if(diasTranscurridos>=90 && diasTranscurridos<=120 && pctActual<100){
+          items.push({color:'#3b82f6',msg:'🔵 '+c.id+' — Construccion proxima a vencer: '+diasTranscurridos+'/120 dias, avance '+Math.round(pctActual)+'%'});
+        }
+      }
+    }
+
+    // ALERTAS DE ENTREGA (por hitos individuales con tiempos)
+    // Se activa cuando construccion >= 100% (casa lista)
+    var casaLista=(c.avReal||0)>=1;
+    if(casaLista && permisoIniciado){
+      // Fecha de "casa lista": usar la fecha de la ultima cuenta cuando llego al 100%
+      var fechaLista=null;
+      if(c.cuentas&&c.cuentas.length>0){
+        for(var ci=c.cuentas.length-1;ci>=0;ci--){
+          if(c.cuentas[ci].pctEjecutado>=1){
+            fechaLista=c.cuentas[ci].fecha||c.cuentas[ci].hasta;
+            break;
+          }
+        }
+      }
+      if(fechaLista){
+        var listaD=new Date(fechaLista);
+        if(!isNaN(listaD)){
+          var diasDesdeLista=Math.floor((hoy-listaD)/(1000*60*60*24));
+          // Revisar cada hito (saltar h1 porque es permiso inicial)
+          for(var hi=1;hi<HITO_KEYS.length;hi++){
+            var hk=HITO_KEYS[hi];
+            var diasEsperados=HITO_DIAS[hi];
+            var estado=c.hitos[hk];
+            if(estado==='1')continue; // Ya completo
+            var atrasoDias=diasDesdeLista-diasEsperados;
+            if(atrasoDias>0){
+              // Atrasado
+              items.push({color:'#dc2626',msg:'🔴 '+c.id+' — '+HITOS_NOMBRES[hi]+': ATRASADO '+atrasoDias+' dias (esperado dia '+diasEsperados+', ya pasaron '+diasDesdeLista+')'});
+            } else if(atrasoDias>=-7 && estado==='3'){
+              // Proximo a vencer (7 dias antes)
+              items.push({color:'#f59e0b',msg:'🟡 '+c.id+' — '+HITOS_NOMBRES[hi]+': proximo a vencer en '+Math.abs(atrasoDias)+' dias'});
+            } else if(estado==='2'){
+              // En proceso (informativo)
+              items.push({color:'#3b82f6',msg:'🔵 '+c.id+' — '+HITOS_NOMBRES[hi]+': en proceso'});
+            }
+          }
+        }
+      }
+    }
+
+    // Casa sin cliente
+    if(!c.nombre)items.push({color:'#94a3b8',msg:c.id+' ('+c.modelo+') — sin cliente asignado'});
   });
+
   // Add CRM alerts
   (prospectos||[]).forEach(function(p){
     var dias=diasSinContacto(p);
@@ -1041,6 +1165,120 @@ function renderAlertas(){
   });
   document.getElementById('alertas-list').innerHTML=items.length===0?'<p style="color:#888;font-size:13px">Sin alertas activas.</p>':items.slice(0,50).map(a=>'<div class="alert-item"><div class="dot" style="background:'+a.color+'"></div><span>'+a.msg+'</span></div>').join('');
 }
+// ══════════════════════════ ALERTAS POR EMAIL Y PUSH ══════════════════════════
+async function enviarResumenSemanal(){
+  if(!confirm('Enviar resumen semanal por correo a los destinatarios registrados?'))return;
+  showToast('Generando resumen...');
+  try{
+    var res=await fetch(SB_URL+'/functions/v1/resumen-semanal',{
+      method:'POST',
+      headers:{
+        'Authorization':'Bearer '+SB_KEY,
+        'Content-Type':'application/json'
+      }
+    });
+    var data=await res.json();
+    if(data.ok){
+      showToast('Resumen enviado: '+data.stats.ventas+' ventas, '+data.criticas+' criticas');
+    }else{
+      showToast('Error: '+(data.error||'desconocido'),true);
+    }
+  }catch(e){
+    showToast('Error enviando correo: '+e.message,true);
+  }
+}
+
+async function enviarAlertasEmail(){
+  if(!confirm('Enviar resumen de alertas por correo a los destinatarios registrados?'))return;
+  showToast('Enviando correo...');
+  try{
+    var res=await fetch(SB_URL+'/functions/v1/enviar-alertas',{
+      method:'POST',
+      headers:{
+        'Authorization':'Bearer '+SB_KEY,
+        'Content-Type':'application/json'
+      }
+    });
+    var data=await res.json();
+    if(data.ok){
+      showToast('Correo enviado: '+data.alertas_count+' alertas ('+data.criticas+' criticas)');
+    }else{
+      showToast('Error: '+(data.error||'desconocido'),true);
+    }
+  }catch(e){
+    showToast('Error enviando correo: '+e.message,true);
+  }
+}
+
+async function habilitarNotifPush(){
+  if(!('Notification' in window)){
+    alert('Tu navegador no soporta notificaciones push.');
+    return;
+  }
+  if(Notification.permission==='granted'){
+    showToast('Notificaciones ya activadas');
+    // Send test notification
+    new Notification('Torre ADC',{body:'Notificaciones activas correctamente',icon:'/icon-192.png'});
+    return;
+  }
+  if(Notification.permission==='denied'){
+    alert('Las notificaciones estan bloqueadas. Ve a configuracion del navegador para habilitarlas.');
+    return;
+  }
+  var perm=await Notification.requestPermission();
+  if(perm==='granted'){
+    new Notification('Torre ADC',{body:'Notificaciones activadas. Recibiras alertas de eventos criticos.',icon:'/icon-192.png'});
+    showToast('Notificaciones activadas');
+    var btn=document.getElementById('btn-notif');
+    if(btn)btn.textContent='🔔 Notificaciones activas';
+  }else{
+    showToast('Permiso denegado',true);
+  }
+}
+
+// Verificar alertas criticas cada hora y mostrar notificacion local
+function checkAlertasCriticas(){
+  if(!('Notification' in window)||Notification.permission!=='granted')return;
+  // Generar alertas como lo hace renderAlertas pero solo criticas
+  var hoy=new Date();
+  var criticas=0;
+  var primerMsg='';
+  casas.forEach(function(c){
+    var todosHitosOk=c.hitos&&HITO_KEYS.every(function(k){return c.hitos[k]==='1';});
+    if(todosHitosOk)return;
+    var permisoIniciado=c.hitos&&(c.hitos.h1==='1'||c.hitos.h1==='2');
+    var pend=Math.max(0,(c.abonar||0)-(c.abonado||0));
+    if(pend>0){criticas++;if(!primerMsg)primerMsg=c.id+': abono pendiente';}
+    if(permisoIniciado&&c.inicio){
+      var inicioD=new Date(c.inicio);
+      if(!isNaN(inicioD)){
+        var dias=Math.floor((hoy-inicioD)/(1000*60*60*24));
+        var pct=(c.avReal||0)*100;
+        if(dias>120&&pct<100){criticas++;if(!primerMsg)primerMsg=c.id+': construccion atrasada';}
+      }
+    }
+  });
+  // Solo notificar si hay alertas criticas y no ha notificado en las ultimas 4 horas
+  try{
+    var ultima=parseInt(sessionStorage.getItem('adc_last_notif')||'0');
+    var horasDesde=(Date.now()-ultima)/(1000*60*60);
+    if(criticas>0&&horasDesde>=4){
+      new Notification('🔴 Torre ADC — Alertas criticas',{
+        body:criticas+' alerta(s) critica(s). '+primerMsg,
+        icon:'/icon-192.png',
+        badge:'/icon-192.png',
+        tag:'adc-critica',
+        requireInteraction:true
+      });
+      sessionStorage.setItem('adc_last_notif',Date.now().toString());
+    }
+  }catch(e){}
+}
+// Revisar alertas cada hora
+setInterval(checkAlertasCriticas,60*60*1000);
+// Y una vez al cargar (despues de 10 segundos)
+setTimeout(checkAlertasCriticas,10000);
+
 function renderAll(){
   var active=document.querySelector('.screen.active');if(!active)return;
   var id=active.id.replace('screen-','');
