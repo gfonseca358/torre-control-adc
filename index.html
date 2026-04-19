@@ -1060,9 +1060,16 @@ function renderAlertas(){
   ];
 
   casas.forEach(c=>{
-    // Ignorar casas completamente entregadas (todos los hitos = 1)
+    // Casa totalmente entregada: solo mostrar alertas si tiene deuda pendiente
     var todosHitosOk=c.hitos&&HITO_KEYS.every(k=>c.hitos[k]==='1');
-    if(todosHitosOk)return;
+    var pendiente=Math.max(0,(c.abonar||0)-(c.abonado||0));
+    if(todosHitosOk){
+      // Solo alertar si hay abono/deuda pendiente
+      if(pendiente>0){
+        items.push({color:'#ef4444',msg:c.id+' — '+(c.nombre||'sin cliente')+': deuda pendiente '+fmt(pendiente)+' (casa ya entregada)'});
+      }
+      return; // No mostrar ninguna otra alerta de casa entregada
+    }
 
     // Saltarse casas sin construccion iniciada para las alertas de obra/entrega
     var permisoIniciado=c.hitos&&(c.hitos.h1==='1'||c.hitos.h1==='2');
