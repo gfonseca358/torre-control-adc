@@ -1,0 +1,26 @@
+{
+  "name": "Torre de Control - Altos de Coronado",
+  "short_name": "Torre ADC",
+  "description": "Torre de Control para proyecto Altos de Coronado",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f0f9f2",
+  "theme_color": "#1a5c2a",
+  "lang": "es-PA",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
