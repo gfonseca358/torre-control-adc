@@ -993,7 +993,19 @@ function renderConst(){
 }
 function renderEntrega(){
   var modelo=document.getElementById('fe-modelo').value,estado=document.getElementById('fe-estado').value;
-  var d=casas.filter(c=>{if(modelo&&c.modelo!==modelo)return false;if(estado==='pendiente'&&!HITO_KEYS.some(k=>c.hitos[k]==='3'))return false;if(estado==='completo'&&HITO_KEYS.some(k=>c.hitos[k]!=='1'))return false;return true;});
+  var d=casas.filter(c=>{
+    if(modelo&&c.modelo!==modelo)return false;
+    // Mostrar solo si permiso de construccion iniciado (h1 completo o en proceso)
+    var permisoIniciado=c.hitos&&(c.hitos.h1==='1'||c.hitos.h1==='2');
+    if(!permisoIniciado)return false;
+    // Ocultar si todos los hitos ya estan completos (casa ya entregada)
+    var todosCompletos=HITO_KEYS.every(k=>c.hitos[k]==='1');
+    if(todosCompletos)return false;
+    // Filtros adicionales de estado
+    if(estado==='pendiente'&&!HITO_KEYS.some(k=>c.hitos[k]==='3'))return false;
+    if(estado==='completo'&&HITO_KEYS.some(k=>c.hitos[k]!=='1'))return false;
+    return true;
+  });
   document.getElementById('tbody-ent').innerHTML=d.map(c=>{var idx=casas.indexOf(c);return '<tr><td style="font-weight:600">'+c.id+'</td><td>'+mBadge(c.modelo)+'</td>'+['h1','h2','h3','h4','h5','h6'].map(k=>'<td>'+hBadge(c.hitos[k])+'</td>').join('')+'<td><button class="btn btn-sm" onclick="abrirEditEntrega('+idx+')">Editar</button></td></tr>';}).join('');
 }
 function renderAlertas(){
