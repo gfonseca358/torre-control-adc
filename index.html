@@ -317,6 +317,36 @@ window.addEventListener('popstate',function(){
 </div>
 </div>
 
+<div class="overlay" id="modal-subir-doc">
+<div class="modal">
+  <div class="modal-hd">Subir documento — <span id="sd-title"></span> <button class="btn btn-sm" onclick="closeModal('subir-doc')">X</button></div>
+  <div class="row"><div class="field"><label>Categoria</label>
+    <select id="sd-categoria">
+      <option value="Cedula">Cédula</option>
+      <option value="Carta Promesa">Carta Promesa</option>
+      <option value="APC">APC</option>
+      <option value="Talonario">Talonario</option>
+      <option value="Ficha">Ficha</option>
+      <option value="Carta de Trabajo">Carta de Trabajo</option>
+      <option value="Declaracion de Renta">Declaración de Renta</option>
+      <option value="Escritura">Escritura</option>
+      <option value="Minuta">Minuta</option>
+      <option value="Avaluo">Avalúo</option>
+      <option value="Contrato">Contrato</option>
+      <option value="Otros">Otros</option>
+    </select>
+  </div></div>
+  <div class="row"><div class="field"><label>Archivo (PDF, imagen, Word, Excel — max 10MB)</label>
+    <input type="file" id="sd-archivo" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx">
+  </div></div>
+  <div class="row"><div class="field"><label>Notas (opcional)</label><textarea id="sd-notas" placeholder="Descripción del documento..."></textarea></div></div>
+  <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+    <button class="btn" onclick="closeModal('subir-doc')">Cancelar</button>
+    <button class="btn btn-primary" id="btn-subir-doc" onclick="subirDocumento()">Subir</button>
+  </div>
+</div>
+</div>
+
 <div class="overlay" id="modal-entrega">
 <div class="modal">
   <div class="modal-hd">Hitos de entrega — <span id="me-title"></span> <button class="btn btn-sm" onclick="closeModal('entrega')">X</button></div>
@@ -426,7 +456,7 @@ window.addEventListener('popstate',function(){
   </div>
   <div class="tbl-wrap"><table>
     <colgroup><col style="width:80px"><col style="width:80px"><col style="width:105px"><col style="width:105px"><col style="width:100px"><col style="width:100px"><col style="width:100px"><col style="width:100px"><col style="width:75px"></colgroup>
-    <thead><tr><th>Casa</th><th>Modelo</th><th colspan="6">Hitos pendientes / en proceso</th><th>Accion</th></tr></thead>
+    <thead><tr><th>Casa</th><th>Modelo</th><th colspan="5">Hitos en proceso</th><th>Pendientes</th><th>Accion</th></tr></thead>
     <tbody id="tbody-ent"></tbody>
   </table></div>
 </div>
@@ -909,6 +939,13 @@ function renderCasaDetail(idx){
     '<button class="btn btn-sm btn-primary" onclick="abrirCuenta('+idx+',null)">+ Nueva cuenta</button></div>'+
     renderCuentas(c,idx)+'</div>';
   html+='<div class="card" style="margin-bottom:12px"><div class="card-hd">Calificacion bancaria <button class="btn btn-sm" onclick="abrirEditCliente('+idx+')">Editar</button></div>'+renderCalificacion(c,idx)+'</div>';
+
+  // ── Documentos ──
+  html+='<div class="card" style="margin-bottom:12px" id="docs-card-'+idx+'">'+
+    '<div class="card-hd">Documentos del cliente '+
+    '<button class="btn btn-sm btn-primary" onclick="abrirSubirDoc('+idx+')">+ Subir documento</button></div>'+
+    '<div id="docs-list-'+idx+'" style="font-size:12px;color:#888;padding:8px 0">Cargando documentos...</div>'+
+  '</div>';
   var hasConstruccion=c.cuentas&&c.cuentas.length>0;
   if(hasConstruccion){
     html+='<div class="card"><div class="card-hd">Hitos de entrega '+
@@ -919,6 +956,8 @@ function renderCasaDetail(idx){
       '<div style="color:#888;font-size:12px;padding:8px 0">Los hitos de entrega se habilitarán cuando se registre la primera cuenta de construcción.</div></div>';
   }
   document.getElementById('casa-detail').innerHTML=html;
+  // Cargar documentos de forma asincrona
+  cargarDocumentosCasa(idx);
 }
 
 function abrirEditEntrega(idx){
@@ -1036,14 +1075,23 @@ function renderEntrega(){
     if(estado==='completo'&&HITO_KEYS.some(k=>c.hitos[k]!=='1'))return false;
     return true;
   });
-  // Mostrar solo hitos pendientes o en proceso (ocultar los completos)
+  // Mostrar hitos en proceso (prioritario) y pendientes
   document.getElementById('tbody-ent').innerHTML=d.map(c=>{
     var idx=casas.indexOf(c);
-    var pendientes=HITO_KEYS.map((k,i)=>({k:k,i:i,estado:c.hitos[k]})).filter(h=>h.estado==='2'||h.estado==='3');
-    var hitoCells=pendientes.slice(0,6).map(h=>'<td style="font-size:10px">'+HITOS_NOMBRES[h.i]+' '+hBadge(h.estado)+'</td>').join('');
-    while(pendientes.length<6&&hitoCells.split('<td').length<=6){hitoCells+='<td></td>';}
-    var resumen=pendientes.length>6?' +'+(pendientes.length-6)+' más':'';
-    return '<tr><td style="font-weight:600">'+c.id+'</td><td>'+mBadge(c.modelo)+'</td><td colspan="6" style="font-size:11px;color:#555">'+pendientes.length+' hito(s) pendiente(s)/en proceso'+resumen+'</td><td><button class="btn btn-sm" onclick="abrirEditEntrega('+idx+')">Ver</button></td></tr>';
+    var enProceso=HITO_KEYS.map((k,i)=>({k:k,i:i,estado:c.hitos[k]})).filter(h=>h.estado==='2');
+    var pendientes=HITO_KEYS.map((k,i)=>({k:k,i:i,estado:c.hitos[k]})).filter(h=>h.estado==='3');
+
+    var enProcesoHTML=enProceso.length>0
+      ? enProceso.map(h=>'<span class="badge b-blue" style="margin:2px 3px 2px 0;display:inline-block">'+HITOS_NOMBRES[h.i]+'</span>').join('')
+      : '<span style="color:#aaa;font-size:11px">—</span>';
+
+    return '<tr>'+
+      '<td style="font-weight:600">'+c.id+'</td>'+
+      '<td>'+mBadge(c.modelo)+'</td>'+
+      '<td colspan="5" style="font-size:11px;white-space:normal;padding:8px 12px"><div style="color:#1d4ed8;font-weight:600;font-size:10px;margin-bottom:4px">EN PROCESO ('+enProceso.length+')</div>'+enProcesoHTML+'</td>'+
+      '<td style="font-size:11px;color:#a16207;white-space:nowrap">'+pendientes.length+' pendiente(s)</td>'+
+      '<td><button class="btn btn-sm" onclick="abrirEditEntrega('+idx+')">Ver</button></td>'+
+    '</tr>';
   }).join('');
 }
 function renderAlertas(){
@@ -1285,6 +1333,164 @@ function checkAlertasCriticas(){
 setInterval(checkAlertasCriticas,60*60*1000);
 // Y una vez al cargar (despues de 10 segundos)
 setTimeout(checkAlertasCriticas,10000);
+
+// ══════════════════════════ DOCUMENTOS ══════════════════════════
+var docsCache = {};
+var docSubirCasaIdx = -1;
+
+async function cargarDocumentosCasa(idx) {
+  var c = casas[idx];
+  if (!c) return;
+  var containerId = 'docs-list-' + idx;
+  var el = document.getElementById(containerId);
+  if (!el) return;
+
+  if (modoLocal) {
+    el.innerHTML = '<div style="color:#888;font-size:12px">Documentos solo disponibles con Supabase conectado.</div>';
+    return;
+  }
+
+  try {
+    var res = await sb.from('documentos_casa').select('*').eq('casa_id', c.id).order('categoria').order('version', {ascending: false});
+    if (res.error) throw res.error;
+    var docs = res.data || [];
+    docsCache[c.id] = docs;
+
+    if (docs.length === 0) {
+      el.innerHTML = '<div style="color:#888;font-size:12px;padding:8px 0">No hay documentos subidos aun. Haz click en "+ Subir documento".</div>';
+      return;
+    }
+
+    // Agrupar por categoria
+    var porCat = {};
+    docs.forEach(function(d) {
+      if (!porCat[d.categoria]) porCat[d.categoria] = [];
+      porCat[d.categoria].push(d);
+    });
+
+    var html = '';
+    Object.keys(porCat).sort().forEach(function(cat) {
+      var lista = porCat[cat];
+      html += '<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:600;color:#1a5c2a;margin-bottom:6px">' + cat + ' <span style="color:#888;font-weight:400">(' + lista.length + (lista.length === 1 ? ' documento' : ' documentos') + ')</span></div>';
+      lista.forEach(function(d, i) {
+        var esUltima = i === 0;
+        var fecha = d.created_at ? new Date(d.created_at).toLocaleDateString('es-PA') : '';
+        var tam = d.tamaño_kb ? Math.round(d.tamaño_kb) + ' KB' : '';
+        var versionBadge = esUltima ? '<span class="badge b-green" style="margin-left:6px">v' + d.version + ' actual</span>' : '<span class="badge b-gray" style="margin-left:6px">v' + d.version + '</span>';
+        html += '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:0.5px solid #c8e6d0;border-radius:8px;margin-bottom:4px;background:' + (esUltima ? '#f0f9f2' : '#fff') + '">' +
+          '<div style="flex:1;min-width:0">' +
+          '<div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + d.nombre_archivo + versionBadge + '</div>' +
+          '<div style="font-size:10px;color:#888">' + fecha + (tam ? ' · ' + tam : '') + (d.notas ? ' · ' + d.notas : '') + '</div>' +
+          '</div>' +
+          '<button class="btn btn-sm" onclick="verDocumento(\'' + d.id + '\')" title="Ver/Descargar">📄</button>' +
+          '<button class="btn btn-sm btn-danger" onclick="eliminarDocumento(\'' + d.id + '\',' + idx + ')" title="Eliminar">🗑️</button>' +
+        '</div>';
+      });
+      html += '</div>';
+    });
+    el.innerHTML = html;
+  } catch (e) {
+    el.innerHTML = '<div style="color:#dc2626;font-size:12px">Error cargando documentos: ' + e.message + '</div>';
+  }
+}
+
+function abrirSubirDoc(idx) {
+  docSubirCasaIdx = idx;
+  var c = casas[idx];
+  document.getElementById('sd-title').textContent = c.id;
+  document.getElementById('sd-archivo').value = '';
+  document.getElementById('sd-notas').value = '';
+  document.getElementById('sd-categoria').value = 'Cedula';
+  openModal('subir-doc');
+}
+
+async function subirDocumento() {
+  if (modoLocal) { alert('Debes estar conectado a Supabase para subir documentos.'); return; }
+  var fileInput = document.getElementById('sd-archivo');
+  var file = fileInput.files[0];
+  if (!file) { alert('Selecciona un archivo primero.'); return; }
+  if (file.size > 10 * 1024 * 1024) { alert('El archivo es mayor a 10MB. Reduce el tamaño antes de subir.'); return; }
+
+  var c = casas[docSubirCasaIdx];
+  var categoria = document.getElementById('sd-categoria').value;
+  var notas = document.getElementById('sd-notas').value.trim();
+
+  var btn = document.getElementById('btn-subir-doc');
+  btn.disabled = true; btn.textContent = 'Subiendo...';
+
+  try {
+    // Calcular version (siguiente despues de la ultima de esa categoria)
+    var existingDocs = await sb.from('documentos_casa').select('version').eq('casa_id', c.id).eq('categoria', categoria).order('version', {ascending: false}).limit(1);
+    var nuevaVersion = 1;
+    if (existingDocs.data && existingDocs.data.length > 0) {
+      nuevaVersion = (existingDocs.data[0].version || 0) + 1;
+    }
+
+    // Path en storage: casa_id/categoria/timestamp-nombre
+    var timestamp = Date.now();
+    var safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    var storagePath = c.id.replace(/\s+/g, '_') + '/' + categoria.replace(/\s+/g, '_') + '/v' + nuevaVersion + '-' + timestamp + '-' + safeName;
+
+    // Subir al bucket
+    var uploadRes = await sb.storage.from('casa-docs').upload(storagePath, file, {
+      cacheControl: '3600',
+      upsert: false
+    });
+    if (uploadRes.error) throw uploadRes.error;
+
+    // Guardar metadata
+    var insertRes = await sb.from('documentos_casa').insert({
+      casa_id: c.id,
+      categoria: categoria,
+      nombre_archivo: file.name,
+      storage_path: storagePath,
+      tamaño_kb: Math.round(file.size / 1024),
+      mime_type: file.type,
+      version: nuevaVersion,
+      notas: notas || null
+    });
+    if (insertRes.error) throw insertRes.error;
+
+    closeModal('subir-doc');
+    showToast('Documento subido como v' + nuevaVersion);
+    cargarDocumentosCasa(docSubirCasaIdx);
+  } catch (e) {
+    alert('Error subiendo documento: ' + (e.message || e));
+  }
+  btn.disabled = false; btn.textContent = 'Subir';
+}
+
+async function verDocumento(docId) {
+  try {
+    var docRes = await sb.from('documentos_casa').select('*').eq('id', docId).single();
+    if (docRes.error) throw docRes.error;
+    var doc = docRes.data;
+    // Crear URL firmada con validez de 1 hora
+    var urlRes = await sb.storage.from('casa-docs').createSignedUrl(doc.storage_path, 3600);
+    if (urlRes.error) throw urlRes.error;
+    window.open(urlRes.data.signedUrl, '_blank');
+  } catch (e) {
+    alert('Error abriendo documento: ' + e.message);
+  }
+}
+
+async function eliminarDocumento(docId, idx) {
+  if (!confirm('Eliminar este documento permanentemente?')) return;
+  try {
+    var docRes = await sb.from('documentos_casa').select('*').eq('id', docId).single();
+    if (docRes.error) throw docRes.error;
+    var doc = docRes.data;
+    // Borrar del storage
+    await sb.storage.from('casa-docs').remove([doc.storage_path]);
+    // Borrar metadata
+    var delRes = await sb.from('documentos_casa').delete().eq('id', docId);
+    if (delRes.error) throw delRes.error;
+    showToast('Documento eliminado');
+    cargarDocumentosCasa(idx);
+  } catch (e) {
+    alert('Error eliminando: ' + e.message);
+  }
+}
 
 function renderAll(){
   var active=document.querySelector('.screen.active');if(!active)return;
