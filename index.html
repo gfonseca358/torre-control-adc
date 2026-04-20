@@ -39,6 +39,8 @@ const HITO_DIAS = [0, 20, 25, 10, 15, 20, 30, 30, 35, 40, 55, 60, 75];
 const SB_URL = 'https://ugvmwxgtcceyrfvyskjw.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVndm13eGd0Y2NleXJmdnlza2p3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1OTQ0NzcsImV4cCI6MjA5MTE3MDQ3N30.uKuT-9AAK3kiB-lNjbvOYkPVqFJ6TuQOF5kCCesV5Uk';
 // Sistema de usuarios con Supabase
+var sb = null;
+var modoLocal = true;
 var currentUser = null;
 async function hashPwd(p){
   const enc=new TextEncoder().encode(p);
