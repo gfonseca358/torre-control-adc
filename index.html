@@ -42,6 +42,13 @@ const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 var sb = null;
 var modoLocal = true;
 var currentUser = null;
+var casas = [];
+var dfModel = 'all';
+var editIdx = null;
+var prevScreen = 'dashboard';
+var cuentaEditCasaIdx = null;
+var cuentaEditIdx = null;
+var casaActual = null;
 async function hashPwd(p){
   const enc=new TextEncoder().encode(p);
   const buf=await crypto.subtle.digest('SHA-256',enc);
